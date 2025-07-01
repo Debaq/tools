@@ -1,0 +1,49 @@
+# Entornos virtuales de Python
+venv/
+venv_*/
+env/
+env_*/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.env/
+
+# Entornos de conda/micromamba
+envs/
+.conda/
+
+# Archivos de compilación Nuitka
+*.dist/
+*.build/
+*.onefile-build/
+nuitka-crash-report.xml
+*.pyi
+
+# Archivos de compilación PyInstaller  
+build/
+dist/
+*.spec
+
+# Archivos de log
+*.log
+*.logs
+logs/
+
+# Archivos temporales de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Archivos de configuración específicos
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Archivos temporales del sistema
+*.tmp
+*.temp
+*~
