@@ -10,6 +10,7 @@ from docx.oxml import parse_xml
 import os
 import collections
 
+
 class GiftToDocxConverter:
     def __init__(self, root):
         self.root = root
@@ -27,7 +28,7 @@ class GiftToDocxConverter:
 
         # Crear frames para cada paso
         self.frames = []
-        for _ in range(4):
+        for _ in range(5):
             frame = ttk.Frame(self.root, padding="10")
             frame.grid(row=0, column=0, sticky="nsew")
             self.frames.append(frame)
@@ -41,8 +42,11 @@ class GiftToDocxConverter:
         # Paso 3: Vista previa interactiva
         self.setup_step3()
 
-        # Paso 4: Resumen y finalización
+        # Paso 4: configuración pagina
         self.setup_step4()
+
+        # Paso 5: Resumen y finalización
+        self.setup_step5()
 
         # Configurar los botones de navegación
         self.setup_navigation()
@@ -147,20 +151,38 @@ class GiftToDocxConverter:
         main_frame.columnconfigure(1, weight=2)
         main_frame.rowconfigure(0, weight=1)
 
-        # Panel izquierdo: Lista de preguntas
+        # Panel izquierdo: Lista de preguntas y controles
         left_panel = ttk.LabelFrame(main_frame, text="Lista de preguntas", padding="5")
         left_panel.grid(row=0, column=0, sticky="nsew", padx=(0,5))
         left_panel.columnconfigure(0, weight=1)
-        left_panel.rowconfigure(0, weight=1)
+        left_panel.rowconfigure(1, weight=1)  # La lista debe expandirse
+        left_panel.rowconfigure(0, weight=0)  # Botones superiores fijos
+        left_panel.rowconfigure(2, weight=0)  # Botones inferiores fijos
+
+        # Botones de control superiores
+        control_frame = ttk.Frame(left_panel)
+        control_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0,5))
+        
+        ttk.Button(control_frame, text="Cargar GIFT", command=self.process_gift_files).pack(side=tk.LEFT, padx=2)
+        ttk.Button(control_frame, text="+ Alternativas", command=self.add_multiple_choice_question).pack(side=tk.LEFT, padx=2)
+        ttk.Button(control_frame, text="+ Desarrollo", command=self.add_essay_question).pack(side=tk.LEFT, padx=2)
 
         # Listbox para preguntas con scrollbar
-        self.questions_listbox = tk.Listbox(left_panel, height=20)
-        self.questions_listbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.questions_listbox = tk.Listbox(left_panel, height=12)
+        self.questions_listbox.grid(row=1, column=0, sticky="nsew", padx=(0,5), pady=5)
         self.questions_listbox.bind("<<ListboxSelect>>", self.on_question_select)
 
         questions_scrollbar = ttk.Scrollbar(left_panel, orient="vertical", command=self.questions_listbox.yview)
-        questions_scrollbar.grid(row=0, column=1, sticky="ns", pady=5)
+        questions_scrollbar.grid(row=1, column=1, sticky="ns", pady=5)
         self.questions_listbox.configure(yscrollcommand=questions_scrollbar.set)
+
+        # Botones de orden y eliminación (ahora más visibles)
+        order_frame = ttk.Frame(left_panel)
+        order_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(5,0))
+        
+        ttk.Button(order_frame, text="↑ Subir", command=self.move_question_up).pack(side=tk.LEFT, padx=2)
+        ttk.Button(order_frame, text="↓ Bajar", command=self.move_question_down).pack(side=tk.LEFT, padx=2)
+        ttk.Button(order_frame, text="Eliminar", command=self.delete_question).pack(side=tk.LEFT, padx=2)
 
         # Panel derecho: Editor de pregunta
         right_panel = ttk.LabelFrame(main_frame, text="Editor de pregunta", padding="5")
@@ -184,15 +206,13 @@ class GiftToDocxConverter:
         self.editor_canvas.create_window((0, 0), window=self.editor_frame, anchor="nw")
         self.editor_frame.bind("<Configure>", lambda e: self.editor_canvas.configure(scrollregion=self.editor_canvas.bbox("all")))
 
-        # Botones de acción
+        # Botones de acción inferiores
         buttons_frame = ttk.Frame(frame)
         buttons_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky="ew")
 
-        ttk.Button(buttons_frame, text="Cargar archivos GIFT", command=self.process_gift_files).pack(side=tk.LEFT, padx=5)
-
         # Frame para limpieza masiva
         cleanup_frame = ttk.LabelFrame(buttons_frame, text="Limpieza masiva", padding="5")
-        cleanup_frame.pack(side=tk.LEFT, padx=10, fill="y")
+        cleanup_frame.pack(side=tk.LEFT, padx=5, fill="y")
 
         ttk.Label(cleanup_frame, text="Eliminar texto:").pack(side=tk.LEFT)
         self.cleanup_text = tk.StringVar()
@@ -206,7 +226,23 @@ class GiftToDocxConverter:
         ttk.Button(common_frame, text="[html]", command=lambda: self.quick_cleanup("[html]")).pack(side=tk.TOP, pady=1)
         ttk.Button(common_frame, text="[moodle]", command=lambda: self.quick_cleanup("[moodle]")).pack(side=tk.TOP, pady=1)
 
-        ttk.Button(buttons_frame, text="Guardar como nuevo GIFT", command=self.save_as_gift).pack(side=tk.RIGHT, padx=5)
+        # Frame para puntajes
+        score_frame = ttk.LabelFrame(buttons_frame, text="Puntajes", padding="5")
+        score_frame.pack(side=tk.LEFT, padx=5, fill="y")
+
+        ttk.Label(score_frame, text="Puntaje:").pack(side=tk.LEFT)
+        self.mass_score = tk.StringVar(value="1")
+        score_entry = ttk.Entry(score_frame, textvariable=self.mass_score, width=5)
+        score_entry.pack(side=tk.LEFT, padx=2)
+
+        score_buttons = ttk.Frame(score_frame)
+        score_buttons.pack(side=tk.LEFT, padx=5)
+        ttk.Button(score_buttons, text="A todas", command=self.apply_score_to_all).pack(side=tk.TOP, pady=1)
+        ttk.Button(score_buttons, text="A alternativas", command=lambda: self.apply_score_by_type("multiple_choice")).pack(side=tk.TOP, pady=1)
+        ttk.Button(score_buttons, text="A desarrollo", command=lambda: self.apply_score_by_type("essay")).pack(side=tk.TOP, pady=1)
+
+        # Botones finales
+        ttk.Button(buttons_frame, text="Guardar como GIFT", command=self.save_as_gift).pack(side=tk.RIGHT, padx=5)
         ttk.Button(buttons_frame, text="Procesar y continuar", command=self.apply_randomization).pack(side=tk.RIGHT, padx=5)
 
         # Configurar grid del frame principal
@@ -215,6 +251,209 @@ class GiftToDocxConverter:
 
     def setup_step4(self):
         frame = self.frames[3]
+
+        # Título
+        ttk.Label(frame, text="Paso 4: Configuración de página", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=2, pady=10, sticky="w")
+
+        # Crear un canvas con scrollbar para manejar el contenido
+        canvas = tk.Canvas(frame)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        scrollbar.grid(row=1, column=1, sticky="ns", pady=5)
+
+        # Variables de configuración
+        self.exam_title = tk.StringVar(value="EXAMEN")
+        self.answer_sheet_title = tk.StringVar(value="HOJA DE RESPUESTAS")
+        self.institution_name = tk.StringVar(value="")
+        self.course_name = tk.StringVar(value="")
+        self.exam_date = tk.StringVar(value="")
+        
+        # Campos de estudiante
+        self.show_student_name = tk.BooleanVar(value=True)
+        self.show_student_id = tk.BooleanVar(value=True)
+        self.show_student_section = tk.BooleanVar(value=False)
+        self.show_exam_score = tk.BooleanVar(value=True)
+        
+        # Configuración de fuentes
+        self.title_font_size = tk.IntVar(value=16)
+        self.question_font_size = tk.IntVar(value=11)
+        self.font_name = tk.StringVar(value="Arial")
+        
+        # Configuración de página
+        self.page_size = tk.StringVar(value="A4")
+        self.margin_top = tk.DoubleVar(value=2.5)
+        self.margin_bottom = tk.DoubleVar(value=2.5)
+        self.margin_left = tk.DoubleVar(value=2.5)
+        self.margin_right = tk.DoubleVar(value=2.5)
+        
+        # Logo (esquema básico)
+        self.show_logo = tk.BooleanVar(value=False)
+        self.logo_position = tk.StringVar(value="top_left")
+        
+        # Configuración de respuestas correctas
+        self.show_statistics = tk.BooleanVar(value=True)
+        self.show_detailed_info = tk.BooleanVar(value=True)
+        self.show_file_info = tk.BooleanVar(value=True)
+
+        # Configurar grid principal para dos columnas
+        scrollable_frame.columnconfigure(0, weight=1)
+        scrollable_frame.columnconfigure(1, weight=1)
+
+        # COLUMNA IZQUIERDA
+        left_column = ttk.Frame(scrollable_frame)
+        left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
+        # COLUMNA DERECHA
+        right_column = ttk.Frame(scrollable_frame)
+        right_column.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+
+        # === COLUMNA IZQUIERDA ===
+        row_left = 0
+
+        # === INFORMACIÓN GENERAL ===
+        general_frame = ttk.LabelFrame(left_column, text="Información General", padding="10")
+        general_frame.grid(row=row_left, column=0, sticky="ew", pady=5)
+        general_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(general_frame, text="Título del examen:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(general_frame, textvariable=self.exam_title, width=30).grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+
+        ttk.Label(general_frame, text="Institución:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(general_frame, textvariable=self.institution_name, width=30).grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+
+        ttk.Label(general_frame, text="Curso/Materia:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(general_frame, textvariable=self.course_name, width=30).grid(row=2, column=1, sticky="ew", padx=5, pady=2)
+
+        ttk.Label(general_frame, text="Fecha del examen:").grid(row=3, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(general_frame, textvariable=self.exam_date, width=30).grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+
+        row_left += 1
+
+        # === CAMPOS DEL ESTUDIANTE ===
+        student_frame = ttk.LabelFrame(left_column, text="Campos del Estudiante", padding="10")
+        student_frame.grid(row=row_left, column=0, sticky="ew", pady=5)
+
+        ttk.Checkbutton(student_frame, text="Mostrar campo 'Nombre'", variable=self.show_student_name).grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        ttk.Checkbutton(student_frame, text="Mostrar campo 'RUT/ID'", variable=self.show_student_id).grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        ttk.Checkbutton(student_frame, text="Mostrar campo 'Sección'", variable=self.show_student_section).grid(row=2, column=0, sticky="w", padx=5, pady=2)
+        ttk.Checkbutton(student_frame, text="Mostrar campo 'Puntaje'", variable=self.show_exam_score).grid(row=3, column=0, sticky="w", padx=5, pady=2)
+
+        row_left += 1
+
+        # === CONFIGURACIÓN DE FUENTES ===
+        font_frame = ttk.LabelFrame(left_column, text="Configuración de Fuentes", padding="10")
+        font_frame.grid(row=row_left, column=0, sticky="ew", pady=5)
+        font_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(font_frame, text="Fuente:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        font_combo = ttk.Combobox(font_frame, textvariable=self.font_name, width=20)
+        font_combo['values'] = ('Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Liberation Sans')
+        font_combo.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+
+        ttk.Label(font_frame, text="Tamaño título:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        ttk.Spinbox(font_frame, from_=12, to=24, textvariable=self.title_font_size, width=10).grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
+        ttk.Label(font_frame, text="Tamaño preguntas:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
+        ttk.Spinbox(font_frame, from_=8, to=16, textvariable=self.question_font_size, width=10).grid(row=2, column=1, sticky="w", padx=5, pady=2)
+
+        # === COLUMNA DERECHA ===
+        row_right = 0
+
+        # === CONFIGURACIÓN DE PÁGINA ===
+        page_frame = ttk.LabelFrame(right_column, text="Configuración de Página", padding="10")
+        page_frame.grid(row=row_right, column=0, sticky="ew", pady=5)
+        page_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(page_frame, text="Tamaño de página:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        size_combo = ttk.Combobox(page_frame, textvariable=self.page_size, width=20)
+        size_combo['values'] = ('A4', 'Carta (Letter)', 'Legal', 'A3')
+        size_combo.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+
+        # Márgenes
+        ttk.Label(page_frame, text="Márgenes (cm):").grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=(10,2))
+
+        margins_frame = ttk.Frame(page_frame)
+        margins_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5)
+
+        ttk.Label(margins_frame, text="Superior:").grid(row=0, column=0, sticky="w", padx=2)
+        ttk.Spinbox(margins_frame, from_=1.0, to=5.0, increment=0.5, textvariable=self.margin_top, width=8).grid(row=0, column=1, padx=2)
+
+        ttk.Label(margins_frame, text="Inferior:").grid(row=0, column=2, sticky="w", padx=2)
+        ttk.Spinbox(margins_frame, from_=1.0, to=5.0, increment=0.5, textvariable=self.margin_bottom, width=8).grid(row=0, column=3, padx=2)
+
+        ttk.Label(margins_frame, text="Izquierdo:").grid(row=1, column=0, sticky="w", padx=2, pady=2)
+        ttk.Spinbox(margins_frame, from_=1.0, to=5.0, increment=0.5, textvariable=self.margin_left, width=8).grid(row=1, column=1, padx=2, pady=2)
+
+        ttk.Label(margins_frame, text="Derecho:").grid(row=1, column=2, sticky="w", padx=2, pady=2)
+        ttk.Spinbox(margins_frame, from_=1.0, to=5.0, increment=0.5, textvariable=self.margin_right, width=8).grid(row=1, column=3, padx=2, pady=2)
+
+        row_right += 1
+
+        # === LOGO (ESQUEMA BÁSICO) ===
+        logo_frame = ttk.LabelFrame(right_column, text="Logo (Próximamente)", padding="10")
+        logo_frame.grid(row=row_right, column=0, sticky="ew", pady=5)
+        logo_frame.columnconfigure(1, weight=1)
+
+        ttk.Checkbutton(logo_frame, text="Mostrar logo", variable=self.show_logo).grid(row=0, column=0, columnspan=2, sticky="w", padx=5, pady=2)
+
+        ttk.Label(logo_frame, text="Posición:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        position_combo = ttk.Combobox(logo_frame, textvariable=self.logo_position, width=15)
+        position_combo['values'] = ('top_left', 'top_right', 'top_center')
+        position_combo.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
+        # Botón placeholder para cargar logo
+        ttk.Button(logo_frame, text="Cargar logo (Próximamente)", state="disabled").grid(row=2, column=0, columnspan=2, pady=5)
+        ttk.Label(logo_frame, text="Formatos: PNG, JPG, BMP", foreground="gray").grid(row=3, column=0, columnspan=2, pady=2)
+
+        row_right += 1
+
+        # === HOJA DE RESPUESTAS ===
+        answer_frame = ttk.LabelFrame(right_column, text="Configuración Hoja de Respuestas", padding="10")
+        answer_frame.grid(row=row_right, column=0, sticky="ew", pady=5)
+        answer_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(answer_frame, text="Título hoja respuestas:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(answer_frame, textvariable=self.answer_sheet_title, width=25).grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+
+        ttk.Checkbutton(answer_frame, text="Mostrar estadísticas del examen", variable=self.show_statistics).grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=2)
+        ttk.Checkbutton(answer_frame, text="Mostrar información detallada", variable=self.show_detailed_info).grid(row=2, column=0, columnspan=2, sticky="w", padx=5, pady=2)
+        ttk.Checkbutton(answer_frame, text="Mostrar información de archivos", variable=self.show_file_info).grid(row=3, column=0, columnspan=2, sticky="w", padx=5, pady=2)
+
+        # === VISTA PREVIA (abajo, ancho completo) ===
+        preview_frame = ttk.LabelFrame(scrollable_frame, text="Vista Previa", padding="10")
+        preview_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=10)
+
+        self.preview_text = tk.Text(preview_frame, height=6, wrap=tk.WORD, state="disabled")
+        preview_scroll = ttk.Scrollbar(preview_frame, orient="vertical", command=self.preview_text.yview)
+        self.preview_text.configure(yscrollcommand=preview_scroll.set)
+
+        self.preview_text.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        preview_scroll.grid(row=0, column=1, sticky="ns", pady=5)
+
+        preview_frame.columnconfigure(0, weight=1)
+
+        ttk.Button(preview_frame, text="Actualizar Vista Previa", command=self.update_page_preview).grid(row=1, column=0, pady=5)
+
+        # Configurar grid del frame principal
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+        left_column.columnconfigure(0, weight=1)
+        right_column.columnconfigure(0, weight=1)
+
+
+
+    def setup_step5(self):
+        frame = self.frames[4]
 
         # Título
         ttk.Label(frame, text="Paso 4: Generar documentos", font=("Arial", 14, "bold")).grid(row=0, column=0, pady=10, sticky="w")
@@ -232,6 +471,386 @@ class GiftToDocxConverter:
         # Configurar grid
         frame.columnconfigure(0, weight=1)
         frame.rowconfigure(2, weight=1)
+
+
+    
+    def update_page_preview(self):
+        """Actualizar vista previa de la configuración de página"""
+        self.preview_text.config(state="normal")
+        self.preview_text.delete(1.0, tk.END)
+        
+        preview_content = []
+        
+        # Información del examen
+        if self.institution_name.get():
+            preview_content.append(f"INSTITUCIÓN: {self.institution_name.get()}")
+        
+        preview_content.append(f"TÍTULO: {self.exam_title.get()}")
+        
+        if self.course_name.get():
+            preview_content.append(f"CURSO: {self.course_name.get()}")
+        
+        if self.exam_date.get():
+            preview_content.append(f"FECHA: {self.exam_date.get()}")
+        
+        preview_content.append("")
+        
+        # Campos del estudiante
+        preview_content.append("CAMPOS DEL ESTUDIANTE:")
+        if self.show_student_name.get():
+            preview_content.append("  - Nombre: ________________")
+        if self.show_student_id.get():
+            preview_content.append("  - RUT/ID: ________________")
+        if self.show_student_section.get():
+            preview_content.append("  - Sección: ________________")
+        if self.show_exam_score.get():
+            preview_content.append("  - Puntaje: _____ / _____")
+        
+        preview_content.append("")
+        
+        # Configuración de fuentes
+        preview_content.append(f"FUENTE: {self.font_name.get()}")
+        preview_content.append(f"TAMAÑO TÍTULO: {self.title_font_size.get()}pt")
+        preview_content.append(f"TAMAÑO PREGUNTAS: {self.question_font_size.get()}pt")
+        
+        if self.show_logo.get():
+            preview_content.append(f"LOGO: Habilitado (posición: {self.logo_position.get()})")
+        
+        preview_content.append("")
+        preview_content.append("HOJA DE RESPUESTAS:")
+        preview_content.append(f"  - Título: {self.answer_sheet_title.get()}")
+        if self.show_statistics.get():
+            preview_content.append("  - Incluir estadísticas")
+        if self.show_detailed_info.get():
+            preview_content.append("  - Incluir información detallada")
+        if self.show_file_info.get():
+            preview_content.append("  - Incluir información de archivos")
+        
+        self.preview_text.insert(tk.END, "\n".join(preview_content))
+        self.preview_text.config(state="disabled")
+
+    def get_total_score(self):
+        """Calcular puntaje total del examen"""
+        if not self.questions:
+            return 0
+        
+        total = sum(question.get('score', 1.0) for question in self.questions)
+        return total
+
+
+    def add_multiple_choice_question(self):
+        """Ventana emergente para crear pregunta de alternativas"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Nueva pregunta de alternativas")
+        dialog.geometry("600x500")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"600x500+{x}+{y}")
+
+        # Variables
+        question_text = tk.StringVar()
+        num_options = tk.IntVar(value=4)
+        correct_option = tk.IntVar(value=0)
+        score = tk.StringVar(value="1")
+        
+        option_vars = []
+        option_entries = []
+
+        # Función para actualizar opciones
+        def update_options():
+            for widget in options_frame.winfo_children():
+                widget.destroy()
+            
+            option_vars.clear()
+            option_entries.clear()
+            
+            for i in range(num_options.get()):
+                frame = ttk.Frame(options_frame)
+                frame.pack(fill=tk.X, pady=2)
+                
+                # Radio button para correcta
+                ttk.Radiobutton(frame, variable=correct_option, value=i).pack(side=tk.LEFT)
+                
+                # Letra de opción
+                ttk.Label(frame, text=f"{chr(65+i)})", width=3).pack(side=tk.LEFT)
+                
+                # Entry para texto
+                var = tk.StringVar()
+                entry = ttk.Entry(frame, textvariable=var, width=50)
+                entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+                
+                option_vars.append(var)
+                option_entries.append(entry)
+            
+            # Marcar primera como correcta por defecto
+            correct_option.set(0)
+
+        # Interfaz
+        # Texto de pregunta
+        ttk.Label(dialog, text="Texto de la pregunta:").pack(anchor="w", padx=10, pady=(10,2))
+        text_entry = ttk.Entry(dialog, textvariable=question_text, width=70)
+        text_entry.pack(padx=10, pady=2, fill=tk.X)
+
+        # Configuración
+        config_frame = ttk.Frame(dialog)
+        config_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        ttk.Label(config_frame, text="Cantidad de opciones:").pack(side=tk.LEFT)
+        num_spin = tk.Spinbox(config_frame, from_=2, to=8, textvariable=num_options, width=5, command=update_options)
+        num_spin.pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(config_frame, text="Puntaje:").pack(side=tk.LEFT, padx=(20,5))
+        ttk.Entry(config_frame, textvariable=score, width=5).pack(side=tk.LEFT)
+
+        # Opciones
+        ttk.Label(dialog, text="Opciones (seleccione la correcta):").pack(anchor="w", padx=10, pady=(10,2))
+        
+        # Frame scrollable para opciones
+        canvas = tk.Canvas(dialog, height=200)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        options_frame = ttk.Frame(canvas)
+        
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.create_window((0, 0), window=options_frame, anchor="nw")
+        options_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        # Botones
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        def save_question():
+            if not question_text.get().strip():
+                messagebox.showerror("Error", "Debe ingresar el texto de la pregunta")
+                return
+            
+            # Verificar que todas las opciones tengan texto
+            options = []
+            for i, var in enumerate(option_vars):
+                text = var.get().strip()
+                if not text:
+                    messagebox.showerror("Error", f"La opción {chr(65+i)} no puede estar vacía")
+                    return
+                options.append({
+                    'text': text,
+                    'is_correct': i == correct_option.get(),
+                    'feedback': ''
+                })
+            
+            # Crear pregunta
+            question = {
+                'title': 'Pregunta creada',
+                'text': question_text.get().strip(),
+                'type': 'multiple_choice',
+                'options': options,
+                'correct_answer': option_vars[correct_option.get()].get().strip(),
+                'feedback': {},
+                'source_file': 'Creada manualmente',
+                'problems': [],
+                'score': float(score.get()) if score.get().replace('.', '').isdigit() else 1.0
+            }
+            
+            # Agregar a la lista
+            self.questions.append(question)
+            self.update_questions_list()
+            
+            dialog.destroy()
+            messagebox.showinfo("Éxito", "Pregunta de alternativas creada correctamente")
+
+        ttk.Button(button_frame, text="Guardar", command=save_question).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancelar", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+
+        # Inicializar opciones
+        update_options()
+        text_entry.focus()
+
+    def add_essay_question(self):
+        """Ventana emergente para crear pregunta de desarrollo"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Nueva pregunta de desarrollo")
+        dialog.geometry("500x300")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (300 // 2)
+        dialog.geometry(f"500x300+{x}+{y}")
+
+        # Variables
+        question_text = tk.StringVar()
+        lines = tk.IntVar(value=5)
+        score = tk.StringVar(value="1")
+
+        # Interfaz
+        ttk.Label(dialog, text="Texto de la pregunta:").pack(anchor="w", padx=10, pady=(10,2))
+        
+        # Text widget para pregunta larga
+        text_frame = ttk.Frame(dialog)
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        text_widget = tk.Text(text_frame, height=8, wrap=tk.WORD)
+        text_scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
+        text_widget.configure(yscrollcommand=text_scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        text_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Configuración
+        config_frame = ttk.Frame(dialog)
+        config_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        ttk.Label(config_frame, text="Líneas para respuesta:").pack(side=tk.LEFT)
+        ttk.Spinbox(config_frame, from_=1, to=20, textvariable=lines, width=5).pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(config_frame, text="Puntaje:").pack(side=tk.LEFT, padx=(20,5))
+        ttk.Entry(config_frame, textvariable=score, width=5).pack(side=tk.LEFT)
+
+        # Botones
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        def save_question():
+            question_content = text_widget.get("1.0", tk.END).strip()
+            if not question_content:
+                messagebox.showerror("Error", "Debe ingresar el texto de la pregunta")
+                return
+            
+            # Crear pregunta de desarrollo
+            question = {
+                'title': 'Pregunta de desarrollo',
+                'text': question_content,
+                'type': 'essay',
+                'lines': lines.get(),
+                'correct_answer': None,
+                'feedback': {},
+                'source_file': 'Creada manualmente',
+                'problems': [],
+                'score': float(score.get()) if score.get().replace('.', '').isdigit() else 1.0
+            }
+            
+            # Agregar a la lista
+            self.questions.append(question)
+            self.update_questions_list()
+            
+            dialog.destroy()
+            messagebox.showinfo("Éxito", "Pregunta de desarrollo creada correctamente")
+
+        ttk.Button(button_frame, text="Guardar", command=save_question).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancelar", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+
+        text_widget.focus()
+
+    def move_question_up(self):
+        """Subir pregunta en la lista"""
+        selection = self.questions_listbox.curselection()
+        if not selection or selection[0] == 0:
+            return
+        
+        index = selection[0]
+        # Intercambiar posiciones
+        self.questions[index], self.questions[index-1] = self.questions[index-1], self.questions[index]
+        
+        # Actualizar lista y mantener selección
+        self.update_questions_list()
+        self.questions_listbox.selection_set(index-1)
+        self.show_question_editor(index-1)
+
+    def move_question_down(self):
+        """Bajar pregunta en la lista"""
+        selection = self.questions_listbox.curselection()
+        if not selection or selection[0] >= len(self.questions) - 1:
+            return
+        
+        index = selection[0]
+        # Intercambiar posiciones
+        self.questions[index], self.questions[index+1] = self.questions[index+1], self.questions[index]
+        
+        # Actualizar lista y mantener selección
+        self.update_questions_list()
+        self.questions_listbox.selection_set(index+1)
+        self.show_question_editor(index+1)
+
+    def delete_question(self):
+        """Eliminar pregunta seleccionada"""
+        selection = self.questions_listbox.curselection()
+        if not selection:
+            return
+        
+        index = selection[0]
+        question = self.questions[index]
+        
+        # Confirmar eliminación
+        result = messagebox.askyesno(
+            "Confirmar eliminación",
+            f"¿Está seguro de eliminar la pregunta {index+1}?\n\n"
+            f"Texto: {question['text'][:50]}..."
+        )
+        
+        if result:
+            # Eliminar pregunta
+            del self.questions[index]
+            
+            # Actualizar lista
+            self.update_questions_list()
+            
+            # Limpiar editor
+            for widget in self.editor_frame.winfo_children():
+                widget.destroy()
+            self.question_info_label.config(text="Seleccione una pregunta para editar")
+            
+            messagebox.showinfo("Éxito", "Pregunta eliminada correctamente")
+
+    def apply_score_to_all(self):
+        """Aplicar puntaje a todas las preguntas"""
+        try:
+            score = float(self.mass_score.get())
+        except ValueError:
+            messagebox.showerror("Error", "Ingrese un puntaje válido")
+            return
+        
+        for question in self.questions:
+            question['score'] = score
+        
+        # Actualizar editor si hay pregunta seleccionada
+        selection = self.questions_listbox.curselection()
+        if selection:
+            self.show_question_editor(selection[0])
+        
+        messagebox.showinfo("Éxito", f"Puntaje {score} aplicado a todas las preguntas")
+
+    def apply_score_by_type(self, question_type):
+        """Aplicar puntaje a preguntas del tipo especificado"""
+        try:
+            score = float(self.mass_score.get())
+        except ValueError:
+            messagebox.showerror("Error", "Ingrese un puntaje válido")
+            return
+        
+        count = 0
+        for question in self.questions:
+            if question['type'] == question_type:
+                question['score'] = score
+                count += 1
+        
+        # Actualizar editor si hay pregunta seleccionada
+        selection = self.questions_listbox.curselection()
+        if selection:
+            self.show_question_editor(selection[0])
+        
+        type_name = "alternativas" if question_type == "multiple_choice" else "desarrollo"
+        messagebox.showinfo("Éxito", f"Puntaje {score} aplicado a {count} pregunta(s) de {type_name}")
+
+
+
 
     def setup_navigation(self):
         # Crear frame para los botones de navegación
@@ -293,11 +912,25 @@ class GiftToDocxConverter:
         """Finalizar el wizard"""
         self.root.quit()
 
+
     def add_gift_files(self):
         """Abrir selector de archivos para elegir archivos GIFT"""
+        try:
+            # Configurar para ocultar archivos ocultos en Linux/Unix
+            try:
+                self.root.tk.call('tk_getOpenFile', '-foobarbaz')
+            except tk.TclError:
+                pass
+            # Configurar variables para ocultar archivos ocultos
+            self.root.tk.call('set', '::tk::dialog::file::showHiddenBtn', '1')
+            self.root.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
+        except:
+            pass
+
         filenames = filedialog.askopenfilenames(
             title="Seleccionar archivos GIFT",
             filetypes=[
+                ("Archivos GIFT y texto", "*.gift *.txt"),
                 ("Archivos GIFT", "*.gift"),
                 ("Archivos de texto", "*.txt"),
                 ("Archivos Markdown", "*.md"),
@@ -507,6 +1140,7 @@ class GiftToDocxConverter:
         except Exception as e:
             messagebox.showerror("Error", f"Error general al procesar archivos: {str(e)}")
 
+
     def update_questions_list(self):
         """Actualizar la lista de preguntas en el panel izquierdo"""
         self.questions_listbox.delete(0, tk.END)
@@ -514,15 +1148,27 @@ class GiftToDocxConverter:
         for i, question in enumerate(self.questions):
             # Determinar estado de la pregunta
             if question.get('problems'):
-                status = "[!]"
+                status = "[!]"  # En lugar de ⚠️
             else:
-                status = "[ok]"
+                status = "[OK]" # En lugar de ✅
+
+            # Determinar tipo de pregunta
+            if question['type'] == 'multiple_choice':
+                type_icon = "[A]"
+            elif question['type'] == 'essay':
+                type_icon = "[D]"
+            else:
+                type_icon = "[?]"
+
+            # Mostrar puntaje
+            score = question.get('score', 1.0)
+            score_text = f"({score}pts)"
 
             # Truncar texto de pregunta para mostrar en lista
-            question_text = question['text'][:50] + "..." if len(question['text']) > 50 else question['text']
+            question_text = question['text'][:35] + "..." if len(question['text']) > 35 else question['text']
 
             # Agregar a la lista
-            display_text = f"{status} {i+1}. {question_text}"
+            display_text = f"{status} {type_icon} {i+1}. {question_text} {score_text}"
             self.questions_listbox.insert(tk.END, display_text)
 
     def on_question_select(self, event):
@@ -547,7 +1193,8 @@ class GiftToDocxConverter:
             widget.destroy()
 
         # Información de la pregunta
-        info_text = f"Pregunta {question_index + 1}"
+        type_name = "Alternativas" if question['type'] == 'multiple_choice' else "Desarrollo"
+        info_text = f"Pregunta {question_index + 1} - {type_name}"
         if question.get('source_file'):
             info_text += f" (Archivo: {question['source_file']})"
         self.question_info_label.config(text=info_text)
@@ -561,22 +1208,63 @@ class GiftToDocxConverter:
             problems_frame.columnconfigure(0, weight=1)
 
             for i, problem in enumerate(question['problems']):
-                ttk.Label(problems_frame, text=f"- {problem}", foreground="red", wraplength=400).grid(row=i, column=0, sticky="w")
+                ttk.Label(problems_frame, text=f"* {problem}", foreground="red", wraplength=400).grid(row=i, column=0, sticky="w")
 
             row += 1
+
+        # Puntaje de la pregunta
+        score_frame = ttk.LabelFrame(self.editor_frame, text="Puntaje", padding="5")
+        score_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(score_frame, text="Puntaje:").grid(row=0, column=0, sticky="w")
+        score_var = tk.StringVar(value=str(question.get('score', 1.0)))
+        score_entry = ttk.Entry(score_frame, textvariable=score_var, width=10)
+        score_entry.grid(row=0, column=1, padx=5, sticky="w")
+        question['score_var'] = score_var
+        
+        def update_score():
+            try:
+                question['score'] = float(score_var.get())
+                self.update_questions_list()
+                self.questions_listbox.selection_set(question_index)
+            except ValueError:
+                messagebox.showerror("Error", "Ingrese un puntaje válido")
+                score_var.set(str(question.get('score', 1.0)))
+        
+        ttk.Button(score_frame, text="Actualizar", command=update_score).grid(row=0, column=2, padx=5)
+        
+        row += 1
 
         # Editor del texto de la pregunta
         ttk.Label(self.editor_frame, text="Texto de la pregunta:").grid(row=row, column=0, sticky="w", padx=5, pady=(10,2))
         row += 1
 
-        question_text_var = tk.StringVar(value=question['text'])
-        question_entry = ttk.Entry(self.editor_frame, textvariable=question_text_var, width=60)
-        question_entry.grid(row=row, column=0, sticky="ew", padx=5, pady=2)
-        question['text_var'] = question_text_var
+        # Para preguntas largas, usar Text widget
+        if len(question['text']) > 100 or '\n' in question['text']:
+            text_frame = ttk.Frame(self.editor_frame)
+            text_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=2)
+            text_frame.columnconfigure(0, weight=1)
+            
+            question_text = tk.Text(text_frame, height=4, wrap=tk.WORD)
+            text_scroll = ttk.Scrollbar(text_frame, orient="vertical", command=question_text.yview)
+            question_text.configure(yscrollcommand=text_scroll.set)
+            
+            question_text.grid(row=0, column=0, sticky="ew")
+            text_scroll.grid(row=0, column=1, sticky="ns")
+            
+            question_text.insert("1.0", question['text'])
+            question['text_widget'] = question_text
+        else:
+            question_text_var = tk.StringVar(value=question['text'])
+            question_entry = ttk.Entry(self.editor_frame, textvariable=question_text_var, width=60)
+            question_entry.grid(row=row, column=0, sticky="ew", padx=5, pady=2)
+            question['text_var'] = question_text_var
+        
         row += 1
 
-        # Editor de opciones
+        # Editor específico según el tipo de pregunta
         if question['type'] == 'multiple_choice':
+            # Editor de opciones
             ttk.Label(self.editor_frame, text="Opciones de respuesta:").grid(row=row, column=0, sticky="w", padx=5, pady=(10,2))
             row += 1
 
@@ -599,7 +1287,7 @@ class GiftToDocxConverter:
 
                 # Indicador de longitud y correcto
                 char_count = len(option['text'])
-                correct_text = " [CORRECTA]" if option['is_correct'] else ""
+                correct_text = " [✓ CORRECTA]" if option['is_correct'] else ""
                 info_label = ttk.Label(option_frame, text=f"({char_count} caracteres){correct_text}")
                 info_label.grid(row=0, column=2, padx=(5,0))
                 option['info_label'] = info_label
@@ -607,19 +1295,42 @@ class GiftToDocxConverter:
                 # Actualizar contador cuando cambie el texto
                 def update_char_count(var, option=option):
                     new_length = len(var.get())
-                    correct_text = " [CORRECTA]" if option['is_correct'] else ""
+                    correct_text = " [✓ CORRECTA]" if option['is_correct'] else ""
                     option['info_label'].config(text=f"({new_length} caracteres){correct_text}")
 
                 option_var.trace('w', lambda *args, var=option_var: update_char_count(var))
 
                 row += 1
 
+        elif question['type'] == 'essay':
+            # Editor para pregunta de desarrollo
+            ttk.Label(self.editor_frame, text="Configuración de desarrollo:").grid(row=row, column=0, sticky="w", padx=5, pady=(10,2))
+            row += 1
+            
+            dev_frame = ttk.Frame(self.editor_frame)
+            dev_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=2)
+            
+            ttk.Label(dev_frame, text="Líneas para respuesta:").grid(row=0, column=0, sticky="w")
+            lines_var = tk.IntVar(value=question.get('lines', 5))
+            lines_spinbox = ttk.Spinbox(dev_frame, from_=1, to=20, textvariable=lines_var, width=5)
+            lines_spinbox.grid(row=0, column=1, padx=5, sticky="w")
+            question['lines_var'] = lines_var
+            
+            def update_lines():
+                question['lines'] = lines_var.get()
+            
+            lines_var.trace('w', lambda *args: update_lines())
+            
+            row += 1
+
         # Botones de acción para la pregunta
         buttons_frame = ttk.Frame(self.editor_frame)
         buttons_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=10)
 
         ttk.Button(buttons_frame, text="Guardar cambios", command=lambda: self.save_question_changes(question_index)).pack(side=tk.LEFT, padx=5)
-        ttk.Button(buttons_frame, text="Reanalizar problemas", command=lambda: self.reanalyze_question(question_index)).pack(side=tk.LEFT, padx=5)
+        
+        if question['type'] == 'multiple_choice':
+            ttk.Button(buttons_frame, text="Reanalizar problemas", command=lambda: self.reanalyze_question(question_index)).pack(side=tk.LEFT, padx=5)
 
         # Configurar scrolling
         self.editor_frame.columnconfigure(0, weight=1)
@@ -719,15 +1430,30 @@ class GiftToDocxConverter:
         # Actualizar texto de pregunta
         if hasattr(question, 'text_var'):
             question['text'] = question['text_var'].get()
+        elif hasattr(question, 'text_widget'):
+            question['text'] = question['text_widget'].get("1.0", tk.END).strip()
 
-        # Actualizar opciones
+        # Actualizar puntaje
+        if hasattr(question, 'score_var'):
+            try:
+                question['score'] = float(question['score_var'].get())
+            except ValueError:
+                question['score'] = 1.0
+
+        # Actualizar opciones para preguntas de alternativas
         if question['type'] == 'multiple_choice':
             for option in question['options']:
                 if hasattr(option, 'text_var'):
                     option['text'] = option['text_var'].get()
 
-        # Reanalizar problemas
-        question['problems'] = self.detect_question_problems(question)
+        # Actualizar líneas para preguntas de desarrollo
+        elif question['type'] == 'essay':
+            if hasattr(question, 'lines_var'):
+                question['lines'] = question['lines_var'].get()
+
+        # Reanalizar problemas solo para preguntas de alternativas
+        if question['type'] == 'multiple_choice':
+            question['problems'] = self.detect_question_problems(question)
 
         # Actualizar lista de preguntas
         self.update_questions_list()
@@ -769,8 +1495,9 @@ class GiftToDocxConverter:
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar el archivo: {str(e)}")
 
+
     def questions_to_gift_format(self):
-        """Convertir las preguntas editadas de vuelta al formato GIFT"""
+        """Convertir las preguntas editadas de vuelta al formato GIFT - actualizado para manejar desarrollo"""
         gift_lines = []
 
         for question in self.questions:
@@ -797,6 +1524,11 @@ class GiftToDocxConverter:
 
                 options_text += "}"
                 gift_lines.append(options_text)
+            
+            elif question['type'] == 'essay':
+                # Para preguntas de desarrollo, agregar formato especial
+                lines = question.get('lines', 5)
+                gift_lines.append(f"{{# Pregunta de desarrollo - {lines} líneas}}")
 
             # Línea en blanco entre preguntas
             gift_lines.append("")
@@ -830,9 +1562,10 @@ class GiftToDocxConverter:
         self.go_next()
 
     def parse_gift_questions(self, content, source_file=""):
-        """Parsear preguntas en formato GIFT"""
+        """Parsear preguntas en formato GIFT - actualizado para incluir puntajes"""
         # Eliminar comentarios
         content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+
 
         # Dividir en preguntas individuales
         question_blocks = re.split(r'\n\s*\n', content)
@@ -872,7 +1605,8 @@ class GiftToDocxConverter:
                     'correct_answer': None,
                     'feedback': {},
                     'source_file': source_file,
-                    'problems': []
+                    'problems': [],
+                    'score': 1.0  # Puntaje por defecto
                 }
 
                 # Verifica si es una pregunta de opción múltiple
@@ -1007,17 +1741,87 @@ class GiftToDocxConverter:
             messagebox.showerror("Error", f"Error al generar los documentos: {str(e)}")
 
     def create_exam_document(self):
-        """Crear documento de examen"""
+        """Crear documento de examen con configuraciones del Paso 4"""
         doc = Document()
 
-        # Estilos
-        style = doc.styles['Normal']
-        style.font.name = 'Arial'
-        style.font.size = Pt(11)
+        # Configurar página según configuraciones
+        section = doc.sections[0]
+        
+        # Configurar tamaño de página
+        if self.page_size.get() == "A4":
+            section.page_width = Inches(8.27)
+            section.page_height = Inches(11.69)
+        elif self.page_size.get() == "Carta (Letter)":
+            section.page_width = Inches(8.5)
+            section.page_height = Inches(11)
+        elif self.page_size.get() == "Legal":
+            section.page_width = Inches(8.5)
+            section.page_height = Inches(14)
+        elif self.page_size.get() == "A3":
+            section.page_width = Inches(11.69)
+            section.page_height = Inches(16.54)
+        
+        # Configurar márgenes (convertir cm a inches: cm * 0.393701)
+        section.top_margin = Inches(self.margin_top.get() * 0.393701)
+        section.bottom_margin = Inches(self.margin_bottom.get() * 0.393701)
+        section.left_margin = Inches(self.margin_left.get() * 0.393701)
+        section.right_margin = Inches(self.margin_right.get() * 0.393701)
 
-        # Título
-        title = doc.add_heading('EXAMEN', level=1)
+        # Configurar estilos con fuente seleccionada
+        style = doc.styles['Normal']
+        style.font.name = self.font_name.get()
+        style.font.size = Pt(self.question_font_size.get())
+
+        # Encabezado institucional
+        if self.institution_name.get():
+            institution_p = doc.add_paragraph()
+            institution_run = institution_p.add_run(self.institution_name.get())
+            institution_run.font.name = self.font_name.get()
+            institution_run.font.size = Pt(self.title_font_size.get() - 2)
+            institution_run.bold = True
+            institution_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Título del examen
+        title = doc.add_paragraph()
+        title_run = title.add_run(self.exam_title.get())
+        title_run.font.name = self.font_name.get()
+        title_run.font.size = Pt(self.title_font_size.get())
+        title_run.bold = True
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Información del curso y fecha
+        if self.course_name.get() or self.exam_date.get():
+            info_p = doc.add_paragraph()
+            info_text = []
+            if self.course_name.get():
+                info_text.append(f"Curso: {self.course_name.get()}")
+            if self.exam_date.get():
+                info_text.append(f"Fecha: {self.exam_date.get()}")
+            
+            info_run = info_p.add_run(" | ".join(info_text))
+            info_run.font.name = self.font_name.get()
+            info_run.font.size = Pt(self.question_font_size.get())
+            info_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        doc.add_paragraph()
+
+        # Información del estudiante (solo campos habilitados)
+        student_fields = []
+        if self.show_student_name.get():
+            student_fields.append("Nombre: ________________________________")
+        if self.show_student_id.get():
+            student_fields.append("RUT/ID: ________________________________")
+        if self.show_student_section.get():
+            student_fields.append("Sección: ________________________________")
+        if self.show_exam_score.get():
+            total_score = self.get_total_score()
+            student_fields.append(f"Puntaje: ______ / {total_score}")
+
+        if student_fields:
+            for field in student_fields:
+                field_p = doc.add_paragraph(field)
+                field_p.style.font.name = self.font_name.get()
+                field_p.style.font.size = Pt(self.question_font_size.get())
 
         doc.add_paragraph()
 
@@ -1029,44 +1833,45 @@ class GiftToDocxConverter:
         for i, question in enumerate(self.questions, 1):
             if question['type'] == 'multiple_choice':
                 options_per_question[i] = len(question['options'])
+            elif question['type'] == 'essay':
+                options_per_question[i] = 0  # Sin opciones para desarrollo
 
         # Encontrar el máximo número de opciones por pregunta
-        max_options = max(options_per_question.values()) if options_per_question else 4
+        max_options = max([opt for opt in options_per_question.values() if opt > 0], default=4)
 
-        # Calcular la distribución óptima de letras correctas (para que sean equitativas)
+        # Calcular la distribución óptima de letras correctas
         option_chars = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         distributions = {}
 
-        # Agrupar preguntas por número de opciones
+        # Agrupar preguntas por número de opciones (solo alternativas)
         for q_num, num_options in options_per_question.items():
-            if num_options not in distributions:
-                distributions[num_options] = []
-            distributions[num_options].append(q_num)
+            if num_options > 0:  # Solo preguntas de alternativas
+                if num_options not in distributions:
+                    distributions[num_options] = []
+                distributions[num_options].append(q_num)
 
         # Para cada grupo, asignar letras correctas de manera equitativa
         for num_options, q_numbers in distributions.items():
-            # Crear una lista con la misma cantidad de cada letra posible
             valid_chars = option_chars[:num_options]
             target_answers = []
             for char in valid_chars:
                 target_answers.extend([char] * (len(q_numbers) // len(valid_chars)))
 
-            # Añadir caracteres extra si es necesario
             remaining = len(q_numbers) - len(target_answers)
             if remaining > 0:
                 target_answers.extend(random.sample(valid_chars, remaining))
 
-            # Mezclar las respuestas
             random.shuffle(target_answers)
 
-            # Asignar a cada pregunta
             for i, q_num in enumerate(q_numbers):
                 self.answer_keys[q_num] = target_answers[i]
 
         # Preguntas
         for i, question in enumerate(self.questions, 1):
             # Añadir texto de la pregunta
-            doc.add_paragraph(f"{i}. {question['text']}")
+            question_p = doc.add_paragraph(f"{i}. {question['text']}")
+            question_p.style.font.name = self.font_name.get()
+            question_p.style.font.size = Pt(self.question_font_size.get())
 
             # Si es de opción múltiple, añadir opciones
             if question['type'] == 'multiple_choice':
@@ -1075,27 +1880,17 @@ class GiftToDocxConverter:
 
                 # Reorganizar opciones según el algoritmo mejorado
                 if self.randomize_options.get() and i in self.answer_keys:
-                    # Determinar qué opción es la correcta
                     correct_option = next((opt for opt in options if opt['is_correct']), None)
                     if correct_option:
-                        # Reorganizar para que la respuesta correcta esté en la posición deseada
                         target_position = ord(self.answer_keys[i]) - ord('a')
-
-                        # Remover la opción correcta de la lista
                         options.remove(correct_option)
-
-                        # Mezclar las opciones incorrectas
                         random.shuffle(options)
-
-                        # Insertar la opción correcta en la posición objetivo
                         if target_position < len(options) + 1:
                             options.insert(target_position, correct_option)
                         else:
                             options.append(correct_option)
                 else:
-                    # Aleatorización simple
                     random.shuffle(options)
-                    # Actualizar la clave de respuesta
                     for j, opt in enumerate(options):
                         if opt['is_correct'] and i not in self.answer_keys:
                             self.answer_keys[i] = option_chars[j] if j < len(option_chars) else 'X'
@@ -1103,8 +1898,17 @@ class GiftToDocxConverter:
                 # Añadir opciones
                 for j, opt in enumerate(options):
                     if j < len(option_chars):
-                        # Usar letras mayúsculas para las opciones
-                        doc.add_paragraph(f"   {option_chars[j].upper()}) {opt['text']}")
+                        option_p = doc.add_paragraph(f"   {option_chars[j].upper()}) {opt['text']}")
+                        option_p.style.font.name = self.font_name.get()
+                        option_p.style.font.size = Pt(self.question_font_size.get())
+
+            elif question['type'] == 'essay':
+                # Añadir líneas para respuesta de desarrollo
+                lines = question.get('lines', 5)
+                for _ in range(lines):
+                    line_p = doc.add_paragraph("_" * 80)
+                    line_p.style.font.name = self.font_name.get()
+                    line_p.style.font.size = Pt(self.question_font_size.get())
 
             # Espacio entre preguntas
             doc.add_paragraph()
@@ -1113,29 +1917,38 @@ class GiftToDocxConverter:
         doc.add_page_break()
 
         # Título de la hoja de respuestas
-        answer_title = doc.add_heading('HOJA DE RESPUESTAS', level=1)
+        answer_title = doc.add_paragraph()
+        answer_title_run = answer_title.add_run(self.answer_sheet_title.get())
+        answer_title_run.font.name = self.font_name.get()
+        answer_title_run.font.size = Pt(self.title_font_size.get())
+        answer_title_run.bold = True
         answer_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        doc.add_paragraph("Marque con una X la respuesta correcta para cada pregunta.")
+        # Información del estudiante en hoja de respuestas
+        if student_fields:
+            doc.add_paragraph("Marque con una X la respuesta correcta para cada pregunta.")
+            doc.add_paragraph()
+            
+            for field in student_fields:
+                field_p = doc.add_paragraph(field)
+                field_p.style.font.name = self.font_name.get()
+                field_p.style.font.size = Pt(self.question_font_size.get())
+
         doc.add_paragraph()
 
-        # Crear tabla para la hoja de respuestas (2 columnas)
-        # Calcular número de filas necesarias
+        # Crear tabla para la hoja de respuestas
         num_questions = len(self.questions)
-        rows_per_column = (num_questions + 1) // 2  # División entera redondeando hacia arriba
+        rows_per_column = (num_questions + 1) // 2
 
-        # Calcular número total de columnas basado en el máximo de opciones
-        cols_per_group = max_options + 1  # +1 para el número de pregunta
-        total_cols = cols_per_group * 2  # Para las dos columnas de preguntas
+        cols_per_group = max_options + 1
+        total_cols = cols_per_group * 2
 
-        # Crear la tabla con suficientes columnas
         table = doc.add_table(rows=rows_per_column + 1, cols=total_cols)
         table.style = 'Table Grid'
 
-        # Letras para los encabezados (en mayúsculas)
-        header_letters = [chr(65 + i) for i in range(max_options)]  # A, B, C, D, ...
+        # Encabezados
+        header_letters = [chr(65 + i) for i in range(max_options)]
 
-        # Encabezados primera columna
         cell = table.cell(0, 0)
         cell.text = "Preg"
 
@@ -1143,7 +1956,6 @@ class GiftToDocxConverter:
             cell = table.cell(0, i + 1)
             cell.text = letter
 
-        # Encabezados segunda columna
         if num_questions > rows_per_column:
             cell = table.cell(0, cols_per_group)
             cell.text = "Preg"
@@ -1152,42 +1964,54 @@ class GiftToDocxConverter:
                 cell = table.cell(0, cols_per_group + i + 1)
                 cell.text = letter
 
-        # Llenar la tabla con números de pregunta y marcar celdas no válidas
-        # Definir un sombreado negro para las celdas no válidas
+        # Llenar la tabla
         shading_black_xml = parse_xml(f'<w:shd {nsdecls("w")} w:fill="000000"/>')
 
         for i in range(num_questions):
             q_num = i + 1
-            row_idx = (i % rows_per_column) + 1  # +1 para saltar el encabezado
+            row_idx = (i % rows_per_column) + 1
+            question = self.questions[i]
 
-            # Obtener el número de opciones para esta pregunta
             if q_num in options_per_question:
                 q_options = options_per_question[q_num]
             else:
-                q_options = 0  # Fallback por si acaso
+                q_options = 0
 
             if i < rows_per_column:  # Primera columna
-                # Número de pregunta
                 cell = table.cell(row_idx, 0)
                 cell.text = str(q_num)
 
-                # Sombrear celdas que superan el número de opciones
-                for j in range(q_options + 1, max_options + 1):
-                    cell = table.cell(row_idx, j)
-                    cell._element.get_or_add_tcPr().append(shading_black_xml)
-                    cell.text = ""  # Texto vacío
+                # Manejar celdas según tipo de pregunta
+                if question['type'] == 'essay':
+                    # Pregunta de desarrollo: todas las celdas negras
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
+                else:
+                    # Pregunta de alternativas: sombrear celdas que superan el número de opciones
+                    for j in range(q_options + 1, max_options + 1):
+                        cell = table.cell(row_idx, j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
             else:  # Segunda columna
-                # Número de pregunta
                 cell = table.cell(row_idx, cols_per_group)
                 cell.text = str(q_num)
 
-                # Sombrear celdas que superan el número de opciones
-                for j in range(q_options + 1, max_options + 1):
-                    cell = table.cell(row_idx, cols_per_group + j)
-                    cell._element.get_or_add_tcPr().append(shading_black_xml)
-                    cell.text = ""  # Texto vacío
+                if question['type'] == 'essay':
+                    # Pregunta de desarrollo: todas las celdas negras
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, cols_per_group + j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
+                else:
+                    # Pregunta de alternativas: sombrear celdas que superan el número de opciones
+                    for j in range(q_options + 1, max_options + 1):
+                        cell = table.cell(row_idx, cols_per_group + j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
 
-        # Ajustar ancho de columnas para mejor visualización
+        # Ajustar ancho de columnas
         for cell in table.columns[0].cells:
             cell.width = Inches(0.5)
 
@@ -1197,103 +2021,253 @@ class GiftToDocxConverter:
 
         return doc
 
+
     def create_answers_document(self):
-        """Crear documento de respuestas"""
+        """Crear documento de respuestas con configuraciones del Paso 4"""
         doc = Document()
 
-        # Estilos
+        # Configurar página según configuraciones (igual que examen)
+        section = doc.sections[0]
+        
+        if self.page_size.get() == "A4":
+            section.page_width = Inches(8.27)
+            section.page_height = Inches(11.69)
+        elif self.page_size.get() == "Carta (Letter)":
+            section.page_width = Inches(8.5)
+            section.page_height = Inches(11)
+        elif self.page_size.get() == "Legal":
+            section.page_width = Inches(8.5)
+            section.page_height = Inches(14)
+        elif self.page_size.get() == "A3":
+            section.page_width = Inches(11.69)
+            section.page_height = Inches(16.54)
+        
+        section.top_margin = Inches(self.margin_top.get() * 0.393701)
+        section.bottom_margin = Inches(self.margin_bottom.get() * 0.393701)
+        section.left_margin = Inches(self.margin_left.get() * 0.393701)
+        section.right_margin = Inches(self.margin_right.get() * 0.393701)
+
+        # Configurar estilos
         style = doc.styles['Normal']
-        style.font.name = 'Arial'
-        style.font.size = Pt(11)
+        style.font.name = self.font_name.get()
+        style.font.size = Pt(self.question_font_size.get())
+
+        # Encabezado
+        if self.institution_name.get():
+            institution_p = doc.add_paragraph()
+            institution_run = institution_p.add_run(self.institution_name.get())
+            institution_run.font.name = self.font_name.get()
+            institution_run.font.size = Pt(self.title_font_size.get() - 2)
+            institution_run.bold = True
+            institution_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         # Título
-        title = doc.add_heading('HOJA DE RESPUESTAS', level=1)
+        title = doc.add_paragraph()
+        title_run = title.add_run("RESPUESTAS CORRECTAS")
+        title_run.font.name = self.font_name.get()
+        title_run.font.size = Pt(self.title_font_size.get())
+        title_run.bold = True
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # Añadir estadísticas de las preguntas
-        doc.add_heading('Estadísticas del examen', level=2)
+        if self.course_name.get() or self.exam_date.get():
+            info_p = doc.add_paragraph()
+            info_text = []
+            if self.course_name.get():
+                info_text.append(f"Curso: {self.course_name.get()}")
+            if self.exam_date.get():
+                info_text.append(f"Fecha: {self.exam_date.get()}")
+            
+            info_run = info_p.add_run(" | ".join(info_text))
+            info_run.font.name = self.font_name.get()
+            info_run.font.size = Pt(self.question_font_size.get())
+            info_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        p = doc.add_paragraph()
-        p.add_run(f"Total de preguntas: {len(self.questions)}")
+        doc.add_paragraph()
 
-        multiple_choice_count = sum(1 for q in self.questions if q['type'] == 'multiple_choice')
-        p = doc.add_paragraph()
-        p.add_run(f"Preguntas de opción múltiple: {multiple_choice_count}")
+        # Mostrar estadísticas según configuración
+        if self.show_statistics.get():
+            stats_p = doc.add_heading('Estadísticas del examen', level=2)
+            stats_p.style.font.name = self.font_name.get()
 
-        # Información de archivos procesados
-        if len(self.gift_files) > 1:
-            p = doc.add_paragraph()
-            p.add_run("Archivos procesados:").bold = True
+            total_score = self.get_total_score()
+            multiple_choice_count = sum(1 for q in self.questions if q['type'] == 'multiple_choice')
+            essay_count = sum(1 for q in self.questions if q['type'] == 'essay')
+
+            doc.add_paragraph(f"Total de preguntas: {len(self.questions)}")
+            doc.add_paragraph(f"Preguntas de alternativas: {multiple_choice_count}")
+            doc.add_paragraph(f"Preguntas de desarrollo: {essay_count}")
+            doc.add_paragraph(f"Puntaje total: {total_score} puntos")
+
+        if self.show_file_info.get() and len(self.gift_files) > 1:
+            files_p = doc.add_heading('Archivos procesados', level=2)
+            files_p.style.font.name = self.font_name.get()
+            
             for i, file_path in enumerate(self.gift_files, 1):
                 filename = os.path.basename(file_path)
                 file_questions = sum(1 for q in self.questions if q['source_file'] == filename)
-                doc.add_paragraph(f"  {i}. {filename} ({file_questions} preguntas)")
+                doc.add_paragraph(f"{i}. {filename} ({file_questions} preguntas)")
 
-        # Información de problemas detectados
-        questions_with_problems = [q for q in self.questions if q.get('problems')]
-        if questions_with_problems:
-            p = doc.add_paragraph()
-            p.add_run(f"Preguntas con problemas detectados: {len(questions_with_problems)}").bold = True
+        if self.show_detailed_info.get():
+            # Análisis de distribución de respuestas correctas
+            if self.answer_keys:
+                answer_counter = collections.Counter(self.answer_keys.values())
+                dist_p = doc.add_heading('Distribución de alternativas correctas', level=2)
+                dist_p.style.font.name = self.font_name.get()
 
-        # Analizar el número de opciones por pregunta
-        option_counts = [len(q['options']) for q in self.questions if q['type'] == 'multiple_choice']
-        if option_counts:
-            counter = collections.Counter(option_counts)
-
-            p = doc.add_paragraph()
-            p.add_run("Distribución de opciones por pregunta:").bold = True
-
-            for count, frequency in sorted(counter.items()):
-                doc.add_paragraph(f"  - Preguntas con {count} opciones: {frequency}")
-
-        # Análisis de distribución de respuestas correctas
-        if self.answer_keys:
-            answer_counter = collections.Counter(self.answer_keys.values())
-
-            p = doc.add_paragraph()
-            p.add_run("Distribución de alternativas correctas:").bold = True
-
-            for letter, count in sorted(answer_counter.items()):
-                doc.add_paragraph(f"  - Alternativa {letter.upper()}): {count} preguntas")
-        else:
-            p = doc.add_paragraph()
-            p.add_run("Distribución de alternativas correctas:").bold = True
-            doc.add_paragraph("  - No se pudo calcular la distribución (error en el procesamiento)")
+                for letter, count in sorted(answer_counter.items()):
+                    doc.add_paragraph(f"Alternativa {letter.upper()}: {count} preguntas")
 
         doc.add_paragraph()
-        doc.add_heading('Respuestas correctas', level=2)
 
-        # Preguntas y respuestas
-        for i, question in enumerate(self.questions, 1):
-            # Añadir información del archivo fuente si hay múltiples
-            if len(self.gift_files) > 1:
-                p = doc.add_paragraph()
-                p.add_run(f"[Archivo: {question['source_file']}]").italic = True
-
-            # Añadir texto de la pregunta
-            p = doc.add_paragraph()
-            p.add_run(f"{i}. {question['text']}").bold = True
-
-            # Si es de opción múltiple, añadir respuesta correcta
+        # TABLA DE RESPUESTAS CORRECTAS (IDÉNTICA AL EXAMEN PERO CON RESPUESTAS)
+        table_title = doc.add_heading('Hoja de Respuestas Correctas', level=2)
+        table_title.style.font.name = self.font_name.get()
+        
+        # Recrear la misma tabla que en el examen
+        num_questions = len(self.questions)
+        rows_per_column = (num_questions + 1) // 2
+        
+        # Encontrar máximo de opciones
+        max_options = 4
+        for question in self.questions:
             if question['type'] == 'multiple_choice':
-                correct_letter = self.answer_keys.get(i, "?")
+                max_options = max(max_options, len(question['options']))
 
-                # Encontrar la respuesta correcta
-                correct_options = [opt for opt in question['options'] if opt['is_correct']]
+        cols_per_group = max_options + 1
+        total_cols = cols_per_group * 2
 
-                if correct_options:
-                    correct_answer = correct_options[0]['text']
-                    # Mostrar la letra correcta que fue asignada
-                    doc.add_paragraph(f"   Respuesta correcta: {correct_letter.upper()}) {correct_answer}")
+        table = doc.add_table(rows=rows_per_column + 1, cols=total_cols)
+        table.style = 'Table Grid'
 
-                    # Añadir retroalimentación si existe
-                    if correct_options[0]['feedback']:
-                        doc.add_paragraph(f"   Retroalimentación: {correct_options[0]['feedback']}")
+        # Encabezados idénticos
+        header_letters = [chr(65 + i) for i in range(max_options)]
+
+        cell = table.cell(0, 0)
+        cell.text = "Preg"
+
+        for i, letter in enumerate(header_letters):
+            cell = table.cell(0, i + 1)
+            cell.text = letter
+
+        if num_questions > rows_per_column:
+            cell = table.cell(0, cols_per_group)
+            cell.text = "Preg"
+
+            for i, letter in enumerate(header_letters):
+                cell = table.cell(0, cols_per_group + i + 1)
+                cell.text = letter
+
+        # Llenar tabla con respuestas correctas
+        shading_black_xml = parse_xml(f'<w:shd {nsdecls("w")} w:fill="000000"/>')
+
+        for i in range(num_questions):
+            q_num = i + 1
+            row_idx = (i % rows_per_column) + 1
+            question = self.questions[i]
+
+            if i < rows_per_column:  # Primera columna
+                cell = table.cell(row_idx, 0)
+                cell.text = str(q_num)
+
+                if question['type'] == 'essay':
+                    # Pregunta de desarrollo: todas las celdas negras
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
                 else:
-                    doc.add_paragraph("   Respuesta correcta: No encontrada")
+                    # Pregunta de alternativas: mostrar respuesta correcta
+                    num_options = len(question['options'])
+                    correct_letter = self.answer_keys.get(q_num, 'X')
+                    correct_index = ord(correct_letter.upper()) - ord('A')
 
-            # Espacio entre preguntas
-            doc.add_paragraph()
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, j)
+                        option_index = j - 1
+                        
+                        if option_index >= num_options:
+                            # Opción no existe: celda negra
+                            cell._element.get_or_add_tcPr().append(shading_black_xml)
+                            cell.text = ""
+                        elif option_index == correct_index:
+                            # Respuesta correcta: mostrar letra
+                            cell.text = correct_letter.upper()
+                        else:
+                            # Respuesta incorrecta: celda negra
+                            cell._element.get_or_add_tcPr().append(shading_black_xml)
+                            cell.text = ""
+            else:  # Segunda columna
+                cell = table.cell(row_idx, cols_per_group)
+                cell.text = str(q_num)
+
+                if question['type'] == 'essay':
+                    # Pregunta de desarrollo: todas las celdas negras
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, cols_per_group + j)
+                        cell._element.get_or_add_tcPr().append(shading_black_xml)
+                        cell.text = ""
+                else:
+                    # Pregunta de alternativas: mostrar respuesta correcta
+                    num_options = len(question['options'])
+                    correct_letter = self.answer_keys.get(q_num, 'X')
+                    correct_index = ord(correct_letter.upper()) - ord('A')
+
+                    for j in range(1, max_options + 1):
+                        cell = table.cell(row_idx, cols_per_group + j)
+                        option_index = j - 1
+                        
+                        if option_index >= num_options:
+                            # Opción no existe: celda negra
+                            cell._element.get_or_add_tcPr().append(shading_black_xml)
+                            cell.text = ""
+                        elif option_index == correct_index:
+                            # Respuesta correcta: mostrar letra
+                            cell.text = correct_letter.upper()
+                        else:
+                            # Respuesta incorrecta: celda negra
+                            cell._element.get_or_add_tcPr().append(shading_black_xml)
+                            cell.text = ""
+
+        doc.add_paragraph()
+
+        # Detalles de preguntas (según configuración)
+        if self.show_detailed_info.get():
+            details_p = doc.add_heading('Detalles de las preguntas', level=2)
+            details_p.style.font.name = self.font_name.get()
+
+            for i, question in enumerate(self.questions, 1):
+                if len(self.gift_files) > 1:
+                    source_p = doc.add_paragraph()
+                    source_run = source_p.add_run(f"[Archivo: {question['source_file']}]")
+                    source_run.italic = True
+
+                question_p = doc.add_paragraph()
+                question_run = question_p.add_run(f"{i}. {question['text']}")
+                question_run.bold = True
+
+                if question['type'] == 'multiple_choice':
+                    correct_letter = self.answer_keys.get(i, "?")
+                    correct_options = [opt for opt in question['options'] if opt['is_correct']]
+
+                    if correct_options:
+                        correct_answer = correct_options[0]['text']
+                        score = question.get('score', 1.0)
+                        doc.add_paragraph(f"   Respuesta correcta: {correct_letter.upper()}) {correct_answer}")
+                        doc.add_paragraph(f"   Puntaje: {score} punto(s)")
+
+                        if correct_options[0]['feedback']:
+                            doc.add_paragraph(f"   Retroalimentación: {correct_options[0]['feedback']}")
+                    else:
+                        doc.add_paragraph("   Respuesta correcta: No encontrada")
+                
+                elif question['type'] == 'essay':
+                    score = question.get('score', 1.0)
+                    lines = question.get('lines', 5)
+                    doc.add_paragraph(f"   Tipo: Pregunta de desarrollo")
+                    doc.add_paragraph(f"   Líneas asignadas: {lines}")
+                    doc.add_paragraph(f"   Puntaje: {score} punto(s)")
+
+                doc.add_paragraph()
 
         return doc
 
