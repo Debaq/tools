@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Dispositivos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .device-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .device-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-card.online {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .device-card.offline {
+            border-left: 4px solid #f44336;
+            opacity: 0.7;
+        }
+
+        .device-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .device-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .device-status.offline {
+            background: #f44336;
+        }
+
+        .device-info {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+
+        .device-info strong {
+            color: white;
+        }
+
+        .no-devices {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .status-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .device-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monitor de Dispositivos</h1>
+            <div class="status-info">
+                <div class="status-item">
+                    <div class="status-indicator"></div>
+                    <span>Última actualización: <span id="last-update">Cargando...</span></span>
+                </div>
+                <div class="status-item">
+                    <span>Dispositivos en línea: <span id="online-count">0</span></span>
+                </div>
+                <button class="refresh-btn" onclick="loadDevices()">🔄 Actualizar</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Cargando dispositivos...</p>
+        </div>
+
+        <div id="devices-container" class="devices-grid" style="display: none;">
+        </div>
+
+        <div id="no-devices" class="no-devices" style="display: none;">
+            <h3>No se encontraron dispositivos</h3>
+            <p>Los dispositivos aparecerán aquí cuando estén en línea</p>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'Nunca';
+            const date = new Date(dateString);
+            return date.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function getDeviceIcon(name) {
+            if (name.includes('server')) return '🖥️';
+            if (name.includes('K1')) return '📱';
+            return '💻';
+        }
+
+        function isDeviceOnline(timestamp) {
+            if (!timestamp) return false;
+            const now = new Date();
+            const deviceTime = new Date(timestamp);
+            const diffMinutes = (now - deviceTime) / (1000 * 60);
+            return diffMinutes < 15; // Considerar online si se vio en los últimos 15 minutos
+        }
+
+        function renderDevices(data) {
+            const container = document.getElementById('devices-container');
+            const noDevicesDiv = document.getElementById('no-devices');
+            const loadingDiv = document.getElementById('loading');
+            
+            loadingDiv.style.display = 'none';
+            
+            if (!data.devices || data.devices.length === 0) {
+                container.style.display = 'none';
+                noDevicesDiv.style.display = 'block';
+                document.getElementById('online-count').textContent = '0';
+                return;
+            }
+
+            let onlineCount = 0;
+            let html = '';
+            
+            data.devices.forEach(device => {
+                const online = isDeviceOnline(device.timestamp);
+                if (online) onlineCount++;
+                
+                html += `
+                    <div class="device-card ${online ? 'online' : 'offline'}">
+                        <div class="device-name">
+                            <span>${getDeviceIcon(device.name)}</span>
+                            <span>${device.name}</span>
+                            <div class="device-status ${online ? '' : 'offline'}"></div>
+                        </div>
+                        <div class="device-info">
+                            <p><strong>IP:</strong> ${device.ip}</p>
+                            <p><strong>MAC:</strong> ${device.mac}</p>
+                            <p><strong>Estado:</strong> ${online ? 'En línea' : 'Fuera de línea'}</p>
+                            <p><strong>Última vez visto:</strong> ${formatDate(device.timestamp)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            container.style.display = 'grid';
+            noDevicesDiv.style.display = 'none';
+            
+            document.getElementById('online-count').textContent = onlineCount;
+            document.getElementById('last-update').textContent = formatDate(data.last_scan);
+        }
+
+        function loadDevices() {
+            fetch('receiver.php')
+                .then(response => response.json())
+                .then(data => {
+                    renderDevices(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('no-devices').style.display = 'block';
+                    document.getElementById('no-devices').innerHTML = `
+                        <h3>Error de conexión</h3>
+                        <p>No se pudo cargar la información de los dispositivos</p>
+                    `;
+                });
+        }
+
+        // Cargar dispositivos al inicio
+        loadDevices();
+
+        // Actualizar cada 30 segundos
+        refreshInterval = setInterval(loadDevices, 30000);
+
+        // Limpiar interval cuando se cierre la página
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
