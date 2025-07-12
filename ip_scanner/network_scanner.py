@@ -52,6 +52,59 @@ def scan_network():
         print(f"Error en scan_network: {e}")
         return []
 
+def load_full_config(config_file):
+    """Carga la configuración completa desde archivo JSON"""
+    try:
+        if not os.path.exists(config_file):
+            print(f"❌ Error: Archivo de configuración no encontrado: {config_file}")
+            sys.exit(1)
+        
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Validar estructura del JSON
+        required_sections = ['server', 'scan', 'devices']
+        for section in required_sections:
+            if section not in config:
+                print(f"❌ Error: Falta la sección '{section}' en {config_file}")
+                sys.exit(1)
+        
+        # Validar sección server
+        if 'url' not in config['server']:
+            print(f"❌ Error: Falta 'server.url' en {config_file}")
+            sys.exit(1)
+        
+        # Validar sección scan
+        if 'interval_minutes' not in config['scan']:
+            print(f"❌ Error: Falta 'scan.interval_minutes' en {config_file}")
+            sys.exit(1)
+        
+        # Validar devices
+        if not config['devices']:
+            print(f"❌ Error: No se encontraron dispositivos en {config_file}")
+            sys.exit(1)
+        
+        # Normalizar MACs a minúsculas
+        normalized_devices = {}
+        for mac, name in config['devices'].items():
+            normalized_devices[mac.lower()] = name
+        
+        config['devices'] = normalized_devices
+        
+        print(f"✅ Configuración completa cargada desde {config_file}")
+        print(f"  🌐 Servidor: {config['server']['url']}")
+        print(f"  ⏱️  Intervalo: {config['scan']['interval_minutes']} minutos")
+        print(f"  📱 Dispositivos: {len(config['devices'])}")
+        
+        return config
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: JSON inválido en {config_file}: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error leyendo {config_file}: {e}")
+        sys.exit(1)
+
 def load_devices_config(config_file):
     """Carga la configuración de dispositivos desde archivo JSON"""
     try:
@@ -164,36 +217,67 @@ def main():
         description='Monitor de dispositivos de red que envía datos a PHP',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''Ejemplos:
+  # Usar archivo de configuración completo
+  python3 network_scanner.py -f config.json
+  
+  # Usar parámetros individuales (método anterior)
   python3 network_scanner.py http://midominio.com/monitor/ devices.json
-  python3 network_scanner.py http://192.168.1.100/php/ devices.json -t 5
-  python3 network_scanner.py https://localhost/test/ devices.json -t 0.5'''
+  python3 network_scanner.py http://192.168.1.100/php/ devices.json -t 5'''
     )
     
-    parser.add_argument('url', 
-                       help='URL de la carpeta donde está receiver.php (ej: http://midominio.com/monitor/)')
+    # Grupo mutuamente exclusivo
+    group = parser.add_mutually_exclusive_group(required=True)
+    
+    group.add_argument('-f', '--file', 
+                      help='Archivo JSON con configuración completa (reemplaza todos los otros parámetros)')
+    
+    group.add_argument('url', 
+                      nargs='?',
+                      help='URL de la carpeta donde está receiver.php (ej: http://midominio.com/monitor/)')
     
     parser.add_argument('config', 
-                       help='Archivo JSON con configuración de dispositivos (ej: devices.json)')
+                       nargs='?',
+                       help='Archivo JSON con configuración de dispositivos (solo si no se usa -f)')
     
     parser.add_argument('-t', '--time', 
                        type=float, 
                        default=10,
-                       help='Intervalo de refresco en minutos (default: 10, acepta decimales como 0.5)')
+                       help='Intervalo de refresco en minutos (solo si no se usa -f)')
     
     args = parser.parse_args()
     
-    # Validar intervalo
-    if args.time <= 0:
-        print("❌ Error: El tiempo debe ser mayor a 0")
-        sys.exit(1)
+    # Modo archivo de configuración completo
+    if args.file:
+        config = load_full_config(args.file)
+        
+        # Extraer configuración
+        base_url = config['server']['url'].rstrip('/')
+        PHP_URL = f"{base_url}/receiver.php"
+        REFRESH_INTERVAL = config['scan']['interval_minutes']
+        MAC_TO_NAME = config['devices']
+        
+        # Validar intervalo
+        if REFRESH_INTERVAL <= 0:
+            print("❌ Error: scan.interval_minutes debe ser mayor a 0")
+            sys.exit(1)
     
-    # Cargar configuración de dispositivos
-    MAC_TO_NAME = load_devices_config(args.config)
-    
-    # Configurar variables globales
-    base_url = args.url.rstrip('/')  # Quitar / final si existe
-    PHP_URL = f"{base_url}/receiver.php"
-    REFRESH_INTERVAL = args.time
+    # Modo parámetros individuales (compatibilidad)
+    else:
+        if not args.url or not args.config:
+            print("❌ Error: Se requiere URL y archivo de dispositivos, o usar -f con archivo completo")
+            parser.print_help()
+            sys.exit(1)
+        
+        # Validar intervalo
+        if args.time <= 0:
+            print("❌ Error: El tiempo debe ser mayor a 0")
+            sys.exit(1)
+        
+        # Cargar configuración modo anterior
+        MAC_TO_NAME = load_devices_config(args.config)
+        base_url = args.url.rstrip('/')
+        PHP_URL = f"{base_url}/receiver.php"
+        REFRESH_INTERVAL = args.time
     
     # Calcular segundos para sleep
     sleep_seconds = int(REFRESH_INTERVAL * 60)
