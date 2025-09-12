@@ -49,9 +49,9 @@
       "font_body": "var(--sans)",
       "slides": [
         {
-          "eyebrow": "Nuevo, nuevo",
-          "title": "",
-          "text": "",
+          "eyebrow": "lámina 2, la mejor lámina, tremenda idea",
+          "title": "Segunda lámina",
+          "text": "esta es una lamina muy importante",
           "bg_type": "gradient",
           "bg_image_url": "",
           "bg_gradient_from": "#004527",
@@ -59,14 +59,33 @@
           "buttons": []
         },
         {
-          "eyebrow": "Nuevo",
-          "title": "aca",
+          "eyebrow": "primera lámina, no es la mejor ",
+          "title": "Lámina 1",
           "text": "Texto de la lámina",
-          "bg_type": "gradient",
-          "bg_image_url": "",
+          "bg_type": "color",
+          "bg_image_url": "https://plus.unsplash.com/premium_photo-1731442837021-3929f70e1710?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
           "bg_gradient_from": "#004527",
           "bg_gradient_to": "#00693e",
-          "buttons": []
+          "buttons": [
+            {
+              "style": "primary",
+              "label": "Más información",
+              "href": "#"
+            },
+            {
+              "style": "secondary",
+              "label": "Menos Información",
+              "href": "#"
+            },
+            {
+              "style": "outline",
+              "label": "Descargar",
+              "href": "#"
+            }
+          ],
+          "bg_image_overlay": "https://plus.unsplash.com/premium_photo-1731442837021-3929f70e1710?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          "bg_overlay_opacity": 0.5,
+          "bg_color": "#55007f"
         }
       ]
     },

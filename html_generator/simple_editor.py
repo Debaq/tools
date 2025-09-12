@@ -19,6 +19,9 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from html_generator import FlexibleHTMLGenerator
 
+from html_highlighter import HTMLHighlighter  
+
+
 
 class ColorButton(QPushButton):
     def __init__(self, color_hex, tooltip_text, parent=None):
@@ -166,6 +169,8 @@ class HTMLEditor(QMainWindow):
         self.html_source_view = QTextEdit()
         self.html_source_view.setReadOnly(True)
         self.html_source_view.setFont(QFont("Consolas", 10))
+        self.html_highlighter = HTMLHighlighter(self.html_source_view.document())
+
         html_layout.addWidget(self.html_source_view)
 
         self.preview_tabs.addTab(html_widget, "📄 Código HTML")
@@ -798,78 +803,230 @@ class HTMLEditor(QMainWindow):
 
         self.tabs.addTab(header_tab, "Header")
 
-        # Hero tab
+        # Hero tab - REORGANIZADO CON TABS
         hero_tab = QWidget()
         he_layout = QVBoxLayout(hero_tab)
+        
+        # Activar hero
         he_enable = QCheckBox("Activar Hero")
         he_enable.setChecked(sections['hero'].get('enabled', True))
         he_enable.toggled.connect(lambda c: self.toggle_section('hero', c))
         he_layout.addWidget(he_enable)
 
-        he_form = QFormLayout()
-        self.hero_rainbow = QCheckBox("Eyebrow arcoíris (varios con coma)")
+        # Crear tabs para el hero
+        hero_tabs = QTabWidget()
+        he_layout.addWidget(hero_tabs)
+
+        # === TAB 1: BÁSICO ===
+        basic_tab = QWidget()
+        basic_form = QFormLayout(basic_tab)
+        
+        # Rainbow eyebrow
+        self.hero_rainbow = QCheckBox("Eyebrow arcoíris (separar con comas)")
         self.hero_rainbow.setChecked(sections['hero'].get('rainbow_eyebrow', False))
-        self.hero_rainbow.toggled.connect(self.on_hero_changed)
+        self.hero_rainbow.toggled.connect(self.on_hero_basic_changed)
+        basic_form.addRow("", self.hero_rainbow)
+        
+        # Fuentes con combobox
+        self.hero_font_title_combo = self.create_font_combobox()
+        self.set_font_combo_value(self.hero_font_title_combo, sections['hero'].get('font_title', 'var(--serif)'))
+        self.hero_font_title_combo.currentIndexChanged.connect(self.on_hero_basic_changed)
+        basic_form.addRow("Fuente título:", self.hero_font_title_combo)
+        
+        self.hero_font_body_combo = self.create_font_combobox()
+        self.set_font_combo_value(self.hero_font_body_combo, sections['hero'].get('font_body', 'var(--sans)'))
+        self.hero_font_body_combo.currentIndexChanged.connect(self.on_hero_basic_changed)
+        basic_form.addRow("Fuente texto:", self.hero_font_body_combo)
+        
+        hero_tabs.addTab(basic_tab, "Básico")
 
-        self.hero_font_title = QLineEdit(sections['hero'].get('font_title', 'var(--serif)'))
-        self.hero_font_body = QLineEdit(sections['hero'].get('font_body', 'var(--sans)'))
-        self.hero_font_title.textChanged.connect(self.on_hero_changed)
-        self.hero_font_body.textChanged.connect(self.on_hero_changed)
-
-        he_form.addRow("", self.hero_rainbow)
-        he_form.addRow("Fuente título:", self.hero_font_title)
-        he_form.addRow("Fuente cuerpo:", self.hero_font_body)
-        he_layout.addLayout(he_form)
-
-        # Slides list and editor
-        slides_group = QGroupBox("Láminas (slides)")
+        # === TAB 2: LÁMINAS ===
+        slides_tab = QWidget()
+        slides_layout = QVBoxLayout(slides_tab)
+        
+        # Lista de slides
+        slides_group = QGroupBox("Gestión de Láminas")
         sg_layout = QVBoxLayout(slides_group)
 
         self.slides_list = QListWidget()
         self.slides_list.currentRowChanged.connect(self.on_slide_selected)
         sg_layout.addWidget(self.slides_list)
 
+        # Botones de gestión
         s_btns = QHBoxLayout()
-        s_add = QPushButton("Agregar lámina")
-        s_del = QPushButton("Eliminar lámina")
+        s_add = QPushButton("➕ Agregar lámina")
+        s_del = QPushButton("🗑️ Eliminar lámina")
+        s_duplicate = QPushButton("📋 Duplicar")
         s_add.clicked.connect(self.add_slide)
         s_del.clicked.connect(self.remove_slide)
+        s_duplicate.clicked.connect(self.duplicate_slide)
         s_btns.addWidget(s_add)
-        s_btns.addWidget(s_del)
+        s_btns.addWidget(s_del) 
+        s_btns.addWidget(s_duplicate)
         sg_layout.addLayout(s_btns)
-
-        # Fields for selected slide
-        s_form = QFormLayout()
+        
+        slides_layout.addWidget(slides_group)
+        
+        # Editor de lámina seleccionada
+        slide_editor = QGroupBox("Editor de Lámina")
+        slide_tabs = QTabWidget()
+        slide_editor_layout = QVBoxLayout(slide_editor)
+        slide_editor_layout.addWidget(slide_tabs)
+        
+        # --- Sub-tab: Contenido ---
+        content_tab = QWidget()
+        content_form = QFormLayout(content_tab)
+        
         self.slide_eyebrow = QLineEdit()
+        self.slide_eyebrow.setPlaceholderText("ej: Nuevo, Innovación")
+        self.slide_eyebrow.textChanged.connect(self.on_slide_basic_changed)
+        content_form.addRow("Eyebrow(s):", self.slide_eyebrow)
+        
         self.slide_title = QLineEdit()
-        self.slide_text = QTextEdit(); self.slide_text.setMaximumHeight(90)
-
-        self.slide_bg_type = QComboBox(); self.slide_bg_type.addItems(["gradient", "image"])
+        self.slide_title.setPlaceholderText("Título principal de la lámina")
+        self.slide_title.textChanged.connect(self.on_slide_basic_changed)
+        content_form.addRow("Título:", self.slide_title)
+        
+        self.slide_text = QTextEdit()
+        self.slide_text.setMaximumHeight(90)
+        self.slide_text.setPlaceholderText("Texto descriptivo de la lámina...")
+        self.slide_text.textChanged.connect(self.on_slide_basic_changed)
+        content_form.addRow("Texto:", self.slide_text)
+        
+        slide_tabs.addTab(content_tab, "Contenido")
+        
+        # --- Sub-tab: Fondo ---
+        background_tab = QWidget()
+        bg_form = QFormLayout(background_tab)
+        
+        # Tipo de fondo
+        self.slide_bg_type = QComboBox()
+        self.slide_bg_type.addItems(["gradient", "image", "color"])
+        self.slide_bg_type.currentTextChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Tipo de fondo:", self.slide_bg_type)
+        
+        # Color sólido - NUEVO
+        bg_color_layout = QHBoxLayout()
+        self.slide_bg_color_btn = ColorButton("#004527", "Color de fondo sólido")
+        self.slide_bg_color_btn.clicked.connect(self.choose_slide_bg_color)
+        
+        self.slide_bg_color_text = QLineEdit("#004527")
+        self.slide_bg_color_text.setPlaceholderText("#RRGGBB")
+        self.slide_bg_color_text.textChanged.connect(self.on_slide_bg_color_text_changed)
+        
+        bg_color_layout.addWidget(self.slide_bg_color_btn)
+        bg_color_layout.addWidget(self.slide_bg_color_text)
+        bg_form.addRow("Color sólido:", bg_color_layout)
+        
+        # Imagen de fondo
         self.slide_bg_image = QLineEdit()
+        self.slide_bg_image.setPlaceholderText("https://ejemplo.com/imagen.jpg")
+        self.slide_bg_image.textChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Imagen URL:", self.slide_bg_image)
+        
+        # Imagen overlay translúcida - NUEVO
+        self.slide_bg_overlay = QLineEdit()
+        self.slide_bg_overlay.setPlaceholderText("https://ejemplo.com/overlay.png")
+        self.slide_bg_overlay.textChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Overlay translúcido:", self.slide_bg_overlay)
+        
+        # Opacidad del overlay - NUEVO
+        self.slide_overlay_opacity = QDoubleSpinBox()
+        self.slide_overlay_opacity.setRange(0.0, 1.0)
+        self.slide_overlay_opacity.setSingleStep(0.1)
+        self.slide_overlay_opacity.setDecimals(1)
+        self.slide_overlay_opacity.setValue(0.5)
+        self.slide_overlay_opacity.valueChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Opacidad overlay:", self.slide_overlay_opacity)
+        
+        # Gradiente
         self.slide_grad_from = QLineEdit("#004527")
+        self.slide_grad_from.textChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Gradiente desde:", self.slide_grad_from)
+        
         self.slide_grad_to = QLineEdit("#00693e")
+        self.slide_grad_to.textChanged.connect(self.on_slide_background_changed)
+        bg_form.addRow("Gradiente hasta:", self.slide_grad_to)
+        
+        slide_tabs.addTab(background_tab, "Fondo")
+        
+        # --- Sub-tab: Botones ---
+        buttons_tab = QWidget()
+        buttons_form = QFormLayout(buttons_tab)
+        
+        buttons_info = QLabel("Máximo 3 botones. Solo se crean los que tengan texto.")
+        buttons_info.setStyleSheet("font-style: italic; color: #666; margin-bottom: 10px;")
+        buttons_form.addRow("", buttons_info)
+        
+        # Botón 1
+        btn1_group = QGroupBox("Botón 1")
+        btn1_layout = QFormLayout(btn1_group)
+        
+        self.slide_btn1_text = QLineEdit()
+        self.slide_btn1_text.setPlaceholderText("ej: Más información")
+        self.slide_btn1_text.textChanged.connect(self.on_slide_buttons_changed)
+        btn1_layout.addRow("Texto:", self.slide_btn1_text)
+        
+        self.slide_btn1_link = QLineEdit()
+        self.slide_btn1_link.setPlaceholderText("ej: #contacto, https://ejemplo.com")
+        self.slide_btn1_link.textChanged.connect(self.on_slide_buttons_changed)
+        btn1_layout.addRow("Enlace:", self.slide_btn1_link)
+        
+        self.slide_btn1_style = QComboBox()
+        self.slide_btn1_style.addItems(["primary", "secondary", "outline"])
+        self.slide_btn1_style.currentTextChanged.connect(self.on_slide_buttons_changed)
+        btn1_layout.addRow("Estilo:", self.slide_btn1_style)
+        
+        buttons_form.addRow("", btn1_group)
+        
+        # Botón 2
+        btn2_group = QGroupBox("Botón 2")
+        btn2_layout = QFormLayout(btn2_group)
+        
+        self.slide_btn2_text = QLineEdit()
+        self.slide_btn2_text.setPlaceholderText("ej: Ver más")
+        self.slide_btn2_text.textChanged.connect(self.on_slide_buttons_changed)
+        btn2_layout.addRow("Texto:", self.slide_btn2_text)
+        
+        self.slide_btn2_link = QLineEdit()
+        self.slide_btn2_link.setPlaceholderText("ej: #recursos")
+        self.slide_btn2_link.textChanged.connect(self.on_slide_buttons_changed)
+        btn2_layout.addRow("Enlace:", self.slide_btn2_link)
+        
+        self.slide_btn2_style = QComboBox()
+        self.slide_btn2_style.addItems(["primary", "secondary", "outline"])
+        self.slide_btn2_style.setCurrentText("secondary")
+        self.slide_btn2_style.currentTextChanged.connect(self.on_slide_buttons_changed)
+        btn2_layout.addRow("Estilo:", self.slide_btn2_style)
+        
+        buttons_form.addRow("", btn2_group)
+        
+        # Botón 3
+        btn3_group = QGroupBox("Botón 3")
+        btn3_layout = QFormLayout(btn3_group)
+        
+        self.slide_btn3_text = QLineEdit()
+        self.slide_btn3_text.setPlaceholderText("ej: Descargar")
+        self.slide_btn3_text.textChanged.connect(self.on_slide_buttons_changed)
+        btn3_layout.addRow("Texto:", self.slide_btn3_text)
+        
+        self.slide_btn3_link = QLineEdit()
+        self.slide_btn3_link.setPlaceholderText("ej: /archivo.pdf")
+        self.slide_btn3_link.textChanged.connect(self.on_slide_buttons_changed)
+        btn3_layout.addRow("Enlace:", self.slide_btn3_link)
+        
+        self.slide_btn3_style = QComboBox()
+        self.slide_btn3_style.addItems(["primary", "secondary", "outline"])
+        self.slide_btn3_style.setCurrentText("outline")
+        self.slide_btn3_style.currentTextChanged.connect(self.on_slide_buttons_changed)
+        btn3_layout.addRow("Estilo:", self.slide_btn3_style)
 
-        self.slide_buttons_json = QTextEdit()
-        self.slide_buttons_json.setPlaceholderText('[{"style":"primary","label":"Texto","href":"#"}]')
-        self.slide_buttons_json.setMaximumHeight(110)
-
-        for w in [self.slide_eyebrow, self.slide_title, self.slide_bg_image, self.slide_grad_from, self.slide_grad_to]:
-            w.textChanged.connect(self.on_slide_fields_changed)
-        self.slide_text.textChanged.connect(self.on_slide_fields_changed)
-        self.slide_bg_type.currentTextChanged.connect(self.on_slide_fields_changed)
-        self.slide_buttons_json.textChanged.connect(self.on_slide_fields_changed)
-
-        s_form.addRow("Eyebrow(s):", self.slide_eyebrow)
-        s_form.addRow("Título:", self.slide_title)
-        s_form.addRow("Texto:", self.slide_text)
-        s_form.addRow("Fondo tipo:", self.slide_bg_type)
-        s_form.addRow("Fondo imagen URL:", self.slide_bg_image)
-        s_form.addRow("Gradiente desde:", self.slide_grad_from)
-        s_form.addRow("Gradiente hasta:", self.slide_grad_to)
-        s_form.addRow("Botones (JSON):", self.slide_buttons_json)
-
-        sg_layout.addLayout(s_form)
-        he_layout.addWidget(slides_group)
+        buttons_form.addRow("", btn3_group)
+        
+        slide_tabs.addTab(buttons_tab, "Botones")
+        
+        slides_layout.addWidget(slide_editor)
+        hero_tabs.addTab(slides_tab, "Láminas")
 
         self.tabs.addTab(hero_tab, "Hero")
 
@@ -1105,6 +1262,194 @@ class HTMLEditor(QMainWindow):
         
         self.schedule_update('header')
 
+
+    def create_font_combobox(self):
+        """Crear combobox de fuentes reutilizable"""
+        combo = QComboBox()
+        font_options = [
+            ("var(--serif)", "Serif (Elegante)"),
+            ("var(--sans)", "Sans-serif (Moderna)"),
+            ("Georgia, serif", "Georgia"),
+            ("'Times New Roman', serif", "Times New Roman"),
+            ("Arial, sans-serif", "Arial"),
+            ("'Helvetica Neue', sans-serif", "Helvetica"),
+            ("'Segoe UI', sans-serif", "Segoe UI"),
+            ("system-ui, sans-serif", "Sistema"),
+            ("monospace", "Monospace"),
+            ("'Courier New', monospace", "Courier New"),
+            ("'EB Garamond', serif", "EB Garamond"),
+            ("'Inter', sans-serif", "Inter"),
+            ("'Roboto', sans-serif", "Roboto")
+        ]
+        
+        for value, label in font_options:
+            combo.addItem(label, value)
+        
+        return combo
+
+    def set_font_combo_value(self, combo, value):
+        """Establecer valor en combobox de fuentes"""
+        for i in range(combo.count()):
+            if combo.itemData(i) == value:
+                combo.setCurrentIndex(i)
+                return
+        # Si no se encuentra, poner el primero
+        combo.setCurrentIndex(0)
+
+    def on_hero_basic_changed(self):
+        """Handler para cambios básicos del hero"""
+        he = self.site_data['sections']['hero']
+        he['rainbow_eyebrow'] = self.hero_rainbow.isChecked()
+        
+        # Obtener valores de los combobox de fuentes
+        title_font = self.hero_font_title_combo.currentData()
+        body_font = self.hero_font_body_combo.currentData()
+        he['font_title'] = title_font if title_font else 'var(--serif)'
+        he['font_body'] = body_font if body_font else 'var(--sans)'
+        
+        self.schedule_update('hero')
+
+    def on_slide_basic_changed(self):
+        """Handler para cambios básicos de la lámina actual"""
+        idx = self.slides_list.currentRow()
+        if idx < 0: 
+            return
+        
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if idx >= len(slides): 
+            return
+        
+        sl = slides[idx]
+        sl['eyebrow'] = self.slide_eyebrow.text()
+        sl['title'] = self.slide_title.text()
+        sl['text'] = self.slide_text.toPlainText()
+        
+        # Actualizar lista
+        self.slides_list.blockSignals(True)
+        self.slides_list.item(idx).setText(sl.get('title','Lámina sin título'))
+        self.slides_list.blockSignals(False)
+        
+        self.schedule_update('hero')
+
+    def on_slide_background_changed(self):
+        """Handler para cambios de fondo de la lámina actual"""
+        idx = self.slides_list.currentRow()
+        if idx < 0: 
+            return
+        
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if idx >= len(slides): 
+            return
+        
+        sl = slides[idx]
+        sl['bg_type'] = self.slide_bg_type.currentText()
+        sl['bg_image_url'] = self.slide_bg_image.text()
+        sl['bg_gradient_from'] = self.slide_grad_from.text()
+        sl['bg_gradient_to'] = self.slide_grad_to.text()
+        
+        # NUEVOS: Imagen translúcida y color overlay
+        sl['bg_image_overlay'] = self.slide_bg_overlay.text()
+        sl['bg_overlay_opacity'] = self.slide_overlay_opacity.value()
+        sl['bg_color'] = self.slide_bg_color_text.text()
+        
+        self.schedule_update('hero')
+
+    def on_slide_buttons_changed(self):
+        """Handler para cambios de botones - Solo crea botones con texto"""
+        idx = self.slides_list.currentRow()
+        if idx < 0: 
+            return
+        
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if idx >= len(slides): 
+            return
+        
+        # Construir array de botones solo para los que tienen texto
+        buttons = []
+        
+        # Botón 1
+        if self.slide_btn1_text.text().strip():
+            buttons.append({
+                "style": self.slide_btn1_style.currentText(),
+                "label": self.slide_btn1_text.text().strip(),
+                "href": self.slide_btn1_link.text().strip() or "#"
+            })
+        
+        # Botón 2  
+        if self.slide_btn2_text.text().strip():
+            buttons.append({
+                "style": self.slide_btn2_style.currentText(),
+                "label": self.slide_btn2_text.text().strip(),
+                "href": self.slide_btn2_link.text().strip() or "#"
+            })
+        
+        # Botón 3
+        if self.slide_btn3_text.text().strip():
+            buttons.append({
+                "style": self.slide_btn3_style.currentText(),
+                "label": self.slide_btn3_text.text().strip(),
+                "href": self.slide_btn3_link.text().strip() or "#"
+            })
+        
+        slides[idx]['buttons'] = buttons
+        self.schedule_update('hero')
+
+    def choose_slide_bg_color(self):
+        """Selector de color para fondo de lámina"""
+        idx = self.slides_list.currentRow()
+        if idx < 0: 
+            return
+        
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if idx >= len(slides): 
+            return
+        
+        current_color = slides[idx].get('bg_color', '#004527')
+        initial = QColor(current_color if current_color.startswith("#") else "#004527")
+        color = QColorDialog.getColor(initial, self, "Color de fondo de lámina")
+        
+        if color.isValid():
+            color_hex = color.name()
+            slides[idx]['bg_color'] = color_hex
+            
+            # Actualizar UI
+            self.slide_bg_color_btn.setStyleSheet(
+                f"background-color: {color_hex}; border: 1px solid #ccc; border-radius: 4px;"
+            )
+            self.slide_bg_color_btn.color_hex = color_hex
+            self.slide_bg_color_text.setText(color_hex)
+            
+            self.schedule_update('hero')
+
+    def on_slide_bg_color_text_changed(self):
+        """Handler para cambio manual del color de fondo"""
+        color_text = self.slide_bg_color_text.text().strip()
+        if not color_text:
+            return
+        
+        idx = self.slides_list.currentRow()
+        if idx < 0: 
+            return
+        
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if idx >= len(slides): 
+            return
+        
+        slides[idx]['bg_color'] = color_text
+        
+        # Actualizar botón si es color hex válido
+        if color_text.startswith('#') and len(color_text) == 7:
+            try:
+                int(color_text[1:], 16)
+                self.slide_bg_color_btn.setStyleSheet(
+                    f"background-color: {color_text}; border: 1px solid #ccc; border-radius: 4px;"
+                )
+                self.slide_bg_color_btn.color_hex = color_text
+            except ValueError:
+                pass
+        
+        self.schedule_update('hero')
+
     def on_hero_changed(self):
         he = self.site_data['sections']['hero']
         he['rainbow_eyebrow'] = self.hero_rainbow.isChecked()
@@ -1288,8 +1633,37 @@ class HTMLEditor(QMainWindow):
         self.load_slide_fields(idx)
 
     def load_slide_fields(self, idx):
+        """Cargar campos de la lámina seleccionada (ARREGLA BUG DE ATRIBUTOS PEGADOS)"""
+        # Bloquear señales para evitar triggers durante la carga
+        widgets_to_block = [
+            self.slide_eyebrow, self.slide_title, self.slide_text,
+            self.slide_bg_type, self.slide_bg_image, self.slide_grad_from,
+            self.slide_grad_to
+        ]
+        
+        # Incluir nuevos widgets si existen
+        if hasattr(self, 'slide_bg_overlay'):
+            widgets_to_block.extend([
+                self.slide_bg_overlay, self.slide_overlay_opacity,
+                self.slide_bg_color_text
+            ])
+        
+        # Incluir widgets de botones si existen
+        if hasattr(self, 'slide_btn1_text'):
+            widgets_to_block.extend([
+                self.slide_btn1_text, self.slide_btn1_link, self.slide_btn1_style,
+                self.slide_btn2_text, self.slide_btn2_link, self.slide_btn2_style,
+                self.slide_btn3_text, self.slide_btn3_link, self.slide_btn3_style
+            ])
+        
+        # Bloquear señales
+        for widget in widgets_to_block:
+            if widget:
+                widget.blockSignals(True)
+        
         slides = self.site_data['sections']['hero'].get('slides', [])
         if idx is None or idx < 0 or idx >= len(slides):
+            # Limpiar campos si no hay lámina válida
             self.slide_eyebrow.setText("")
             self.slide_title.setText("")
             self.slide_text.setPlainText("")
@@ -1297,17 +1671,83 @@ class HTMLEditor(QMainWindow):
             self.slide_bg_image.setText("")
             self.slide_grad_from.setText("#004527")
             self.slide_grad_to.setText("#00693e")
-            self.slide_buttons_json.setPlainText("[]")
-            return
-        sl = slides[idx]
-        self.slide_eyebrow.setText(sl.get('eyebrow',""))
-        self.slide_title.setText(sl.get('title',""))
-        self.slide_text.setPlainText(sl.get('text',""))
-        self.slide_bg_type.setCurrentText(sl.get('bg_type', 'gradient'))
-        self.slide_bg_image.setText(sl.get('bg_image_url', ""))
-        self.slide_grad_from.setText(sl.get('bg_gradient_from', "#004527"))
-        self.slide_grad_to.setText(sl.get('bg_gradient_to', "#00693e"))
-        self.slide_buttons_json.setPlainText(json.dumps(sl.get('buttons', []), ensure_ascii=False, indent=2))
+            
+            # Limpiar campos nuevos si existen
+            if hasattr(self, 'slide_bg_overlay'):
+                self.slide_bg_overlay.setText("")
+                self.slide_overlay_opacity.setValue(0.5)
+                self.slide_bg_color_text.setText("#004527")
+                self.slide_bg_color_btn.setStyleSheet(
+                    "background-color: #004527; border: 1px solid #ccc; border-radius: 4px;"
+                )
+            
+            # Limpiar campos de botones individuales si existen
+            if hasattr(self, 'slide_btn1_text'):
+                self.slide_btn1_text.setText("")
+                self.slide_btn1_link.setText("")
+                self.slide_btn1_style.setCurrentText("primary")
+                self.slide_btn2_text.setText("")
+                self.slide_btn2_link.setText("")
+                self.slide_btn2_style.setCurrentText("secondary")
+                self.slide_btn3_text.setText("")
+                self.slide_btn3_link.setText("")
+                self.slide_btn3_style.setCurrentText("outline")
+                
+        else:
+            # Cargar datos de la lámina
+            sl = slides[idx]
+            self.slide_eyebrow.setText(sl.get('eyebrow', ""))
+            self.slide_title.setText(sl.get('title', ""))
+            self.slide_text.setPlainText(sl.get('text', ""))
+            self.slide_bg_type.setCurrentText(sl.get('bg_type', 'gradient'))
+            self.slide_bg_image.setText(sl.get('bg_image_url', ""))
+            self.slide_grad_from.setText(sl.get('bg_gradient_from', "#004527"))
+            self.slide_grad_to.setText(sl.get('bg_gradient_to', "#00693e"))
+            
+            # Campos nuevos si existen
+            if hasattr(self, 'slide_bg_overlay'):
+                self.slide_bg_overlay.setText(sl.get('bg_image_overlay', ""))
+                self.slide_overlay_opacity.setValue(sl.get('bg_overlay_opacity', 0.5))
+                
+                # Color de fondo
+                bg_color = sl.get('bg_color', '#004527')
+                self.slide_bg_color_text.setText(bg_color)
+                self.slide_bg_color_btn.setStyleSheet(
+                    f"background-color: {bg_color}; border: 1px solid #ccc; border-radius: 4px;"
+                )
+                self.slide_bg_color_btn.color_hex = bg_color
+            
+            # Cargar botones individuales
+            if hasattr(self, 'slide_btn1_text'):
+                buttons = sl.get('buttons', [])
+                
+                # Definir widgets de botones
+                button_widgets = [
+                    (self.slide_btn1_text, self.slide_btn1_link, self.slide_btn1_style),
+                    (self.slide_btn2_text, self.slide_btn2_link, self.slide_btn2_style),
+                    (self.slide_btn3_text, self.slide_btn3_link, self.slide_btn3_style)
+                ]
+                
+                for i, (text_widget, link_widget, style_widget) in enumerate(button_widgets):
+                    if i < len(buttons):
+                        # Cargar datos del botón
+                        btn = buttons[i]
+                        text_widget.setText(btn.get('label', ''))
+                        link_widget.setText(btn.get('href', '#'))
+                        style = btn.get('style', 'primary')
+                        if style in ['primary', 'secondary', 'outline']:
+                            style_widget.setCurrentText(style)
+                    else:
+                        # Limpiar campos vacíos
+                        text_widget.setText('')
+                        link_widget.setText('')
+                        style_widget.setCurrentText('primary' if i == 0 else ('secondary' if i == 1 else 'outline'))
+        
+        # Reactivar señales
+        for widget in widgets_to_block:
+            if widget:
+                widget.blockSignals(False)
+
 
     def on_slide_fields_changed(self):
         idx = self.slides_list.currentRow()
@@ -1332,18 +1772,27 @@ class HTMLEditor(QMainWindow):
         self.schedule_update('hero')
 
     def add_slide(self):
+        """Agregar nueva lámina con valores por defecto mejorados"""
         slides = self.site_data['sections']['hero'].setdefault('slides', [])
-        slides.append({
+        new_slide = {
             "eyebrow": "Nuevo",
-            "title": "Nueva lámina",
-            "text": "Texto de la lámina",
+            "title": f"Nueva lámina {len(slides) + 1}",
+            "text": "Texto descriptivo de la lámina",
             "bg_type": "gradient",
             "bg_image_url": "",
+            "bg_image_overlay": "",
+            "bg_overlay_opacity": 0.5,
+            "bg_color": "#004527",
             "bg_gradient_from": "#004527",
             "bg_gradient_to": "#00693e",
-            "buttons": [{"style":"primary","label":"Más info","href":"#"}]
-        })
+            "buttons": [{"style": "primary", "label": "Más información", "href": "#"}]
+        }
+        
+        slides.append(new_slide)
         self.refresh_slides_list()
+        
+        # Seleccionar la nueva lámina
+        self.slides_list.setCurrentRow(len(slides) - 1)
         self.schedule_update('hero')
 
     def remove_slide(self):
@@ -1353,6 +1802,27 @@ class HTMLEditor(QMainWindow):
             del slides[idx]
             self.refresh_slides_list()
             self.schedule_update('hero')
+
+    def duplicate_slide(self):
+        """Duplicar la lámina seleccionada"""
+        idx = self.slides_list.currentRow()
+        slides = self.site_data['sections']['hero'].setdefault('slides', [])
+        if 0 <= idx < len(slides):
+            # Crear copia de la lámina
+            original = slides[idx]
+            duplicate = original.copy()
+            duplicate['title'] = duplicate.get('title', 'Lámina') + ' (Copia)'
+            
+            # Insertar después de la original
+            slides.insert(idx + 1, duplicate)
+            self.refresh_slides_list()
+            
+            # Seleccionar la nueva lámina
+            self.slides_list.setCurrentRow(idx + 1)
+            self.schedule_update('hero')
+
+
+    
 
 # ========================================================================
 # PARTE 8: 🧰 MÉTODOS HELPER
