@@ -1,0 +1,152 @@
+{
+  "general": {
+    "title": "FIUF – Frontera | Universidad Austral de Chile",
+    "description": "FIUF UACh – Frontera: Ciencia, Conocimiento y Tecnología para un Futuro Sostenible.",
+    "primary_color": "#00693e",
+    "secondary_color": "#c20430"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "title": "FIUF – Frontera · UACh"
+    },
+    "hero": {
+      "enabled": true,
+      "eyebrow": "Frontera",
+      "title": "Ciencia, conocimiento y tecnología para un futuro sostenible",
+      "text": "El Fondo I+D+i Universitario Frontera (FIUF) de la Universidad Austral de Chile busca fortalecer la investigación, el desarrollo y la innovación en áreas estratégicas para contribuir al desarrollo sostenible del país.",
+      "btn_primary": "Participa ahora",
+      "btn_secondary": "Ver documentos"
+    },
+    "que_es": {
+      "enabled": true,
+      "eyebrow": "Sobre el proyecto",
+      "title": "¿Qué es FIUF – Frontera?",
+      "description": "El Fondo I+D+i Universitario Frontera es un proyecto financiado por la Subsecretaría de Ciencia, Tecnología, Conocimiento e Innovación, que busca fortalecer las capacidades de investigación, desarrollo e innovación en la Universidad Austral de Chile.",
+      "cards": [
+        {
+          "pill": "Propósito",
+          "title": "Fortalecer I+D+i",
+          "text": "Fortalecer las capacidades de I+D+i en la UACh, generando conocimiento relevante y soluciones innovadoras para el desarrollo sostenible del país."
+        },
+        {
+          "pill": "Alcance",
+          "title": "Áreas estratégicas",
+          "text": "El proyecto abarca diversas áreas del conocimiento, con un enfoque en desafíos globales como el cambio climático, la biodiversidad y la transición sostenible."
+        },
+        {
+          "pill": "Resultados",
+          "title": "Impacto esperado",
+          "text": "Generación de nuevos conocimientos, formación de capital humano avanzado y transferencia de tecnología, impactando positivamente en la sociedad."
+        }
+      ]
+    },
+    "ejes": {
+      "enabled": true,
+      "eyebrow": "Ejes estratégicos",
+      "title": "Desafíos país priorizados",
+      "description": "El FIUF se estructura en torno a tres ejes estratégicos que abordan desafíos globales y nacionales, alineados con los objetivos de desarrollo sostenible.",
+      "cards": [
+        {
+          "icon": "🤝",
+          "title": "Convivencia social y democracia",
+          "text": "Promoción de la convivencia social, la inclusión y la democracia, abordando diversidad, derechos humanos y justicia social."
+        },
+        {
+          "icon": "🌱",
+          "title": "Transición sostenible de sistemas",
+          "text": "Generar soluciones innovadoras en salud, alimentación y energía, contribuyendo al bienestar integral de la población."
+        },
+        {
+          "icon": "🏔️",
+          "title": "Singularidades de Chile",
+          "text": "Explorar particularidades geográficas, culturales y ecológicas de Chile como la Patagonia, Atacama y ecosistemas únicos."
+        }
+      ]
+    },
+    "etapas": {
+      "enabled": true,
+      "eyebrow": "Hoja de ruta",
+      "title": "Etapas del proyecto",
+      "description": "El FIUF se desarrolla en varias etapas, cada una con objetivos y actividades específicas.",
+      "timeline": [
+        {
+          "title": "Etapa 1 · Diagnóstico y levantamiento (Julio 2025)",
+          "text": "Incluye diagnóstico de capacidades actuales en I+D+i, identificación de brechas y formulación de un plan de acción estratégico."
+        },
+        {
+          "title": "Etapa 2 · Implementación del plan (2026–2035)",
+          "text": "Desarrollo de proyectos estratégicos y fortalecimiento de capacidades, contribuyendo a los desafíos nacionales y globales."
+        }
+      ]
+    },
+    "participa": {
+      "enabled": true,
+      "eyebrow": "Convocatorias",
+      "title": "Participa en FIUF – UACh",
+      "description": "Integra la comunidad FIUF según tu perfil: estudiantes, académicos y actores externos.",
+      "cards": []
+    },
+    "noticias": {
+      "enabled": true,
+      "eyebrow": "Actualidad",
+      "title": "Noticias y eventos",
+      "description": "Entérate de las actividades recientes vinculadas a FIUF – UACh.",
+      "news": [
+        {
+          "icon": "📰",
+          "title": "Lanzamiento del FIUF-UACh",
+          "meta": "Julio 2025 · Universidad Austral de Chile, Valdivia",
+          "text": "El FIUF-UACh fue lanzado oficialmente con la participación de autoridades universitarias, académicos y representantes del gobierno, marcando el inicio de este ambicioso proyecto."
+        },
+        {
+          "icon": "🌐",
+          "title": "Seminario Internacional sobre Innovación",
+          "meta": "Octubre 2025 · Campus Isla Teja, Valdivia",
+          "text": "Reunirá expertos internacionales para discutir las últimas tendencias en innovación y sostenibilidad en el contexto universitario."
+        },
+        {
+          "icon": "🔬",
+          "title": "Primera convocatoria de proyectos",
+          "meta": "Noviembre 2025 · Convocatoria abierta",
+          "text": "Se abre la primera convocatoria para proyectos de investigación en las tres áreas estratégicas del FIUF."
+        }
+      ]
+    },
+    "recursos": {
+      "enabled": true,
+      "eyebrow": "Documentos",
+      "title": "Recursos y descargas",
+      "description": "Accede a documentos y presentaciones clave del proyecto FIUF.",
+      "resources": [
+        {
+          "icon": "📄",
+          "title": "Resumen Ejecutivo",
+          "text": "Documento síntesis del proyecto FIUF con objetivos y alcances."
+        },
+        {
+          "icon": "📋",
+          "title": "Lineamientos del Proyecto",
+          "text": "Documento completo con todos los lineamientos estratégicos."
+        },
+        {
+          "icon": "📊",
+          "title": "Presentaciones",
+          "text": "Material de presentación del proyecto para difusión."
+        }
+      ]
+    },
+    "contacto": {
+      "enabled": true,
+      "eyebrow": "Contacto",
+      "title": "Escríbenos",
+      "description": "Para dudas, sugerencias o coordinación, contáctanos o completa el formulario.",
+      "email": "fiuf@uach.cl",
+      "phone": "+56 63 221 9999",
+      "address": "Universidad Austral de Chile\nCampus Isla Teja, Las Encinas 220\nValdivia, Chile"
+    },
+    "footer": {
+      "enabled": true
+    }
+  }
+}
