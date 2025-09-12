@@ -1,0 +1,45 @@
+{
+  "section_templates": {
+    "header": {
+      "template": "<header class=\"site-header\"><div class=\"topbar container\"><div class=\"brand\">{brand_logo_html}<div class=\"brand__name\">{title}</div></div><nav class=\"primary-nav\">{navigation}</nav></div></header>",
+      "fields": ["title", "brand_logo_html"],
+      "dynamic": ["navigation"]
+    },
+    "hero_single": {
+      "template": "<section class=\"hero\" style=\"{hero_bg_style}\"><div class=\"hero__bg\"></div><div class=\"container\" style=\"{hero_fonts}\">{eyebrow_html}<h1 class=\"hero__title\">{title}</h1><p class=\"hero__text\">{text}</p><div class=\"hero__cta\">{buttons_html}</div></div></section>",
+      "fields": ["eyebrow_html", "title", "text", "buttons_html", "hero_bg_style", "hero_fonts"]
+    },
+    "hero_carousel": {
+      "template": "<section class=\"hero\"><div class=\"carousel\"><div class=\"slides\">{slides_html}</div><button class=\"nav-btn nav-prev\" onclick=\"moveSlide(-1)\">‹</button><button class=\"nav-btn nav-next\" onclick=\"moveSlide(1)\">›</button><div class=\"dots\">{dots_html}</div></div></section>",
+      "fields": ["slides_html", "dots_html"]
+    },
+    "section_with_cards": {
+      "template": "<section id=\"{section_id}\" class=\"{section_class}\"><div class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"grid grid-3\">{cards}</div></div></section>",
+      "fields": ["eyebrow", "title", "description"],
+      "dynamic": ["cards"]
+    },
+    "section_with_timeline": {
+      "template": "<section id=\"{section_id}\" class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"timeline\">{timeline_items}</div></section>",
+      "fields": ["eyebrow", "title", "description"],
+      "dynamic": ["timeline_items"]
+    },
+    "contact_section": {
+      "template": "<section id=\"contacto\" class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"grid grid-2\"><div class=\"card\"><h3>📍 Información de contacto</h3><p><strong>Email:</strong><br>{email}</p><p><strong>Teléfono:</strong><br>{phone}</p><p><strong>Dirección:</strong><br>{address}</p></div><form class=\"card\" onsubmit=\"event.preventDefault(); alert('¡Mensaje enviado!');\"><label><span>Nombre *</span><input required type=\"text\" placeholder=\"Tu nombre\"></label><label><span>Email *</span><input required type=\"email\" placeholder=\"tu@email.com\"></label><label><span>Mensaje *</span><textarea required placeholder=\"Tu mensaje\"></textarea></label><div class=\"actions\"><button class=\"btn btn--primary\" type=\"submit\">Enviar</button></div></form></div></section>",
+      "fields": ["eyebrow", "title", "description", "email", "phone", "address"]
+    },
+    "footer": {
+      "template": "<footer class=\"site-footer\"><div class=\"container\"><p>Universidad Austral de Chile · Independencia 631 · Valdivia · Chile</p><p>© 2025 Todos los derechos reservados</p></div></footer>",
+      "fields": []
+    }
+  },
+  "item_templates": {
+    "card_basic": "<article class=\"card\"><span class=\"pill\">{pill}</span><h3>{title}</h3><p>{text}</p></article>",
+    "card_with_icon": "<article class=\"card\"><h3>{icon} {title}</h3><p>{text}</p></article>",
+    "timeline_item": "<div class=\"tl-item\"><h4>{title}</h4><p>{text}</p></div>",
+    "news_card": "<article class=\"card news-card\"><div class=\"news-img\">{icon}</div><div class=\"card-body\"><h3>{title}</h3><p class=\"meta\">{meta}</p><p>{text}</p><a href=\"#\">Leer más →</a></div></article>",
+    "resource_card": "<article class=\"card\"><h3>{icon} {title}</h3><p>{text}</p><div class=\"actions\"><a class=\"btn btn--primary\" href=\"#\">Descargar</a></div></article>",
+    "hero_slide": "<div class=\"slide\"><div class=\"hero\" style=\"{hero_bg_style}\"><div class=\"hero__bg\"></div><div class=\"container\" style=\"{hero_fonts}\">{eyebrow_html}<h1 class=\"hero__title\">{title}</h1><p class=\"hero__text\">{text}</p><div class=\"hero__cta\">{buttons_html}</div></div></div></div>"
+  },
+  "navigation_template": "<a href=\"#{section_id}\">{nav_text}</a>",
+  "javascript": "let currentSlide = 0;\nconst updateDots = () => {\n  const dots = document.querySelectorAll('.dot');\n  dots.forEach((d,i)=>{ d.classList.toggle('active', i===currentSlide); });\n};\nconst showSlide = (idx) => {\n  const slides = document.querySelector('.slides');\n  const total = slides ? slides.children.length : 0;\n  if (total===0) return;\n  currentSlide = (idx + total) % total;\n  slides.style.transform = `translateX(-${currentSlide*100}%)`;\n  updateDots();\n};\nconst moveSlide = (delta) => showSlide(currentSlide + delta);\n\ndocument.addEventListener('DOMContentLoaded', ()=>{\n  updateDots();\n  setInterval(()=>moveSlide(1), 6000);\n});"
+}
