@@ -1,9 +1,9 @@
 {
   "section_templates": {
-    "header": {
-      "template": "<header class=\"site-header\"><div class=\"topbar container\"><div class=\"brand\">{brand_logo_html}<div class=\"brand__name\">{title}</div></div><nav class=\"primary-nav\">{navigation}</nav></div></header>",
-      "fields": ["title", "brand_logo_html"],
-      "dynamic": ["navigation"]
+   "header": {
+      "template": "<header class=\"site-header\" style=\"{header_custom_styles}\" data-animation=\"{entrance_animation}\" data-scroll-behavior=\"{scroll_behavior}\" data-scroll-threshold=\"{scroll_threshold}\"><div class=\"topbar container\"><div class=\"brand\">{brand_logo_html}<div class=\"brand__name\" style=\"{brand_font_style}\">{title}</div></div><nav class=\"primary-nav\">{navigation}</nav><div class=\"header-extras\">{contact_info_html}{social_links_html}{lang_selector_html}{cta_button_html}</div></div></header>",
+      "fields": ["title", "brand_logo_html", "header_custom_styles", "brand_font_style", "entrance_animation", "scroll_behavior", "scroll_threshold"],
+      "dynamic": ["navigation", "contact_info_html", "social_links_html", "lang_selector_html", "cta_button_html"]
     },
     "hero_single": {
       "template": "<section class=\"hero\" style=\"{hero_bg_style}\"><div class=\"hero__bg\"></div><div class=\"container\" style=\"{hero_fonts}\">{eyebrow_html}<h1 class=\"hero__title\">{title}</h1><p class=\"hero__text\">{text}</p><div class=\"hero__cta\">{buttons_html}</div></div></section>",

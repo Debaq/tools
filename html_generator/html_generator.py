@@ -1,3 +1,7 @@
+# ========================================================================
+# PARTE 1: 🔧 IMPORTS Y CONFIGURACIÓN INICIAL
+# ========================================================================
+
 import json
 
 class FlexibleHTMLGenerator:
@@ -15,8 +19,11 @@ class FlexibleHTMLGenerator:
             print(f"Error: No se encontró el archivo {e.filename}")
             self.css_data = {"variables": {}, "base_styles": [], "components": {}}
             self.templates = {"section_templates": {}, "item_templates": {}}
-            
-    # ------------------------- HEAD / META -------------------------
+
+# ========================================================================
+# PARTE 2: 📄 GENERACIÓN DE HEAD Y META
+# ========================================================================
+
     def generate_head(self):
         head = self.site_data.get("head", {})
         general = self.site_data.get("general", {})
@@ -37,13 +44,69 @@ class FlexibleHTMLGenerator:
 
         favicon_link = f'<link rel="icon" href="{favicon}">' if favicon else ""
 
+        # Meta adicionales
+        meta_keywords = head.get("meta_keywords", "")
+        meta_author = head.get("meta_author", "")
+        canonical_url = head.get("canonical_url", "")
+        theme_color = head.get("theme_color", "")
+        manifest_url = head.get("manifest_url", "")
+
+        # Open Graph
+        og_title = head.get("og_title", title)
+        og_description = head.get("og_description", meta_desc)
+        og_image = head.get("og_image", "")
+        og_type = head.get("og_type", "website")
+
+        # Twitter Cards
+        twitter_card = head.get("twitter_card", "summary")
+        twitter_site = head.get("twitter_site", "")
+        twitter_creator = head.get("twitter_creator", "")
+
+        # Construir meta tags adicionales
+        additional_meta = ""
+        
+        if meta_keywords:
+            additional_meta += f'<meta name="keywords" content="{meta_keywords}">\n    '
+        
+        if meta_author:
+            additional_meta += f'<meta name="author" content="{meta_author}">\n    '
+        
+        if canonical_url:
+            additional_meta += f'<link rel="canonical" href="{canonical_url}">\n    '
+        
+        if theme_color:
+            additional_meta += f'<meta name="theme-color" content="{theme_color}">\n    '
+        
+        if manifest_url:
+            additional_meta += f'<link rel="manifest" href="{manifest_url}">\n    '
+
+        # Open Graph tags
+        og_meta = ""
+        if og_title:
+            og_meta += f'<meta property="og:title" content="{og_title}">\n    '
+        if og_description:
+            og_meta += f'<meta property="og:description" content="{og_description}">\n    '
+        if og_image:
+            og_meta += f'<meta property="og:image" content="{og_image}">\n    '
+        if og_type:
+            og_meta += f'<meta property="og:type" content="{og_type}">\n    '
+
+        # Twitter Cards
+        twitter_meta = ""
+        if twitter_card:
+            twitter_meta += f'<meta name="twitter:card" content="{twitter_card}">\n    '
+        if twitter_site:
+            twitter_meta += f'<meta name="twitter:site" content="{twitter_site}">\n    '
+        if twitter_creator:
+            twitter_meta += f'<meta name="twitter:creator" content="{twitter_creator}">\n    '
+
         head_html = f"""
     <meta charset="{charset}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <meta name="description" content="{meta_desc}">
     <meta name="robots" content="{robots}">
-    {favicon_link}
+    {additional_meta}{og_meta}{twitter_meta}{favicon_link}
     {meta_cache}
     {self.generate_css()}
     """
@@ -52,51 +115,63 @@ class FlexibleHTMLGenerator:
     def html_lang(self):
         return self.site_data.get("head", {}).get("lang", "es")
 
-    # --------------------------- CSS ---------------------------
+# ========================================================================
+# PARTE 3: 🎨 GENERACIÓN DE CSS
+# ========================================================================
+
     def generate_css(self):
         css_content = "<style>\n"
         variables = self.css_data["variables"].copy()
         variables["primary_color"] = self.site_data["general"]["primary_color"]
         variables["secondary_color"] = self.site_data["general"]["secondary_color"]
 
-        # Solo reemplaza placeholders {primary_color}, etc. y
-        # convierte '{{' en '{' (abrir), dejando '}}' tal cual (cierra dos)
-        def safe_replace(s: str) -> str:
-            s = s.replace('{{', '{')  # aperturas dobles -> literal '{'
-            for k, v in variables.items():
-                s = s.replace('{'+k+'}', v)  # placeholders
-            return s
+        def fmt_line(s):
+            try:
+                return s.format(**variables)
+            except Exception:
+                return s
 
-        for style in self.css_data["base_styles"]:
-            css_content += safe_replace(style) + "\n"
-
-        for component_styles in self.css_data["components"].values():
+        # base styles
+        for style in self.css_data.get("base_styles", []):
+            css_content += fmt_line(style) + "\n"
+        # component styles
+        for component_styles in self.css_data.get("components", {}).values():
             for style in component_styles:
-                css_content += safe_replace(style) + "\n"
+                css_content += fmt_line(style) + "\n"
 
+        # UX: que el sticky header no tape títulos
+        css_content += "section, .container { scroll-margin-top: 84px; }\n"
+
+        # Desescapar llaves literales para que el CSS quede con {} simples
+        css_content = css_content.replace("{{", "{").replace("}}", "}")
         css_content += "</style>"
         return css_content
 
-        
-    # ------------------------ NAVIGATION ------------------------
+# ========================================================================
+# PARTE 4: 🧭 GENERACIÓN DE NAVEGACIÓN
+# ========================================================================
+
     def generate_navigation(self):
         nav_items = []
         nav_template = self.templates.get("navigation_template", "<a href=\"#{section_id}\">{nav_text}</a>")
-        nav_mapping = {
-            "que_es": "¿Qué es?",
-            "ejes": "Ejes", 
-            "etapas": "Etapas",
-            "participa": "Participa",
-            "noticias": "Noticias",
-            "recursos": "Recursos",
-            "contacto": "Contacto"
-        }
-        for section_id, nav_text in nav_mapping.items():
-            if self.site_data["sections"].get(section_id, {}).get("enabled", False):
-                nav_items.append(nav_template.format(section_id=section_id, nav_text=nav_text))
+        entries = [
+            ("que_es", "que-es", "¿Qué es?"),
+            ("ejes", "ejes", "Ejes"),
+            ("etapas", "etapas", "Etapas"),
+            ("participa", "participa", "Participa"),
+            ("noticias", "noticias", "Noticias"),
+            ("recursos", "recursos", "Recursos"),
+            ("contacto", "contacto", "Contacto"),
+        ]
+        for key, dom_id, nav_text in entries:
+            if self.site_data["sections"].get(key, {}).get("enabled", False):
+                nav_items.append(nav_template.format(section_id=dom_id, nav_text=nav_text))
         return "\n        ".join(nav_items)
 
-    # ------------------------- ITEMS -------------------------
+# ========================================================================
+# PARTE 5: 🏗️ GENERACIÓN DE ITEMS
+# ========================================================================
+
     def generate_items(self, items, template_name):
         if not items:
             return ""
@@ -127,7 +202,10 @@ class FlexibleHTMLGenerator:
                 continue
         return "\n            ".join(items_html)
 
-    # ------------------------- SECTIONS -------------------------
+# ========================================================================
+# PARTE 6: 🎯 HEADER - MÉTODOS HELPER
+# ========================================================================
+
     def header_brand_logo_html(self):
         header_data = self.site_data["sections"].get("header", {})
         logo_url = header_data.get("logo_url", "")
@@ -135,6 +213,135 @@ class FlexibleHTMLGenerator:
         if not logo_url:
             return '<div class="brand__logo"></div>'
         return f'<a class="brand__logo" href="{logo_link}"><img src="{logo_url}" alt="Logo"></a>'
+
+    def header_custom_styles(self):
+        """Genera estilos personalizados para el header"""
+        header_data = self.site_data["sections"].get("header", {})
+        styles = []
+        
+        # Color de fondo personalizado
+        if header_data.get("bg_color"):
+            styles.append(f"background: {header_data['bg_color']}")
+        
+        # Opacidad
+        if header_data.get("opacity"):
+            styles.append(f"opacity: {header_data['opacity']}")
+        
+        # Altura personalizada
+        if header_data.get("height"):
+            styles.append(f"min-height: {header_data['height']}")
+        
+        # Sticky o no
+        if not header_data.get("sticky", True):
+            styles.append("position: relative")
+        
+        return "; ".join(styles)
+
+    def header_brand_font_style(self):
+        """Genera estilos para la fuente del título de marca"""
+        header_data = self.site_data["sections"].get("header", {})
+        if header_data.get("font_family"):
+            return f"font-family: {header_data['font_family']}"
+        return ""
+
+    def header_contact_info_html(self):
+        """Genera HTML para información de contacto en el header"""
+        header_data = self.site_data["sections"].get("header", {})
+        contact_items = []
+        
+        if header_data.get("phone"):
+            contact_items.append(f'<a href="tel:{header_data["phone"]}" title="Llamar">📞 {header_data["phone"]}</a>')
+        
+        if header_data.get("email"):
+            contact_items.append(f'<a href="mailto:{header_data["email"]}" title="Enviar email">✉️ {header_data["email"]}</a>')
+        
+        if contact_items:
+            return f'<div class="header-contact">{"".join(contact_items)}</div>'
+        return ""
+
+    def header_social_links_html(self):
+        """Genera HTML para enlaces de redes sociales en el header"""
+        header_data = self.site_data["sections"].get("header", {})
+        social_links = []
+        
+        social_networks = [
+            ("social_facebook", "🔗", "Facebook"),
+            ("social_twitter", "🐦", "Twitter/X"),
+            ("social_instagram", "📷", "Instagram"),
+            ("social_linkedin", "💼", "LinkedIn"),
+            ("social_youtube", "🎥", "YouTube")
+        ]
+        
+        for key, icon, name in social_networks:
+            if header_data.get(key):
+                social_links.append(f'<a href="{header_data[key]}" target="_blank" rel="noopener" title="{name}">{icon}</a>')
+        
+        if social_links:
+            return f'<div class="header-social">{"".join(social_links)}</div>'
+        return ""
+
+    def header_lang_selector_html(self):
+        """Genera HTML para selector de idioma en el header"""
+        header_data = self.site_data["sections"].get("header", {})
+        
+        if not header_data.get("show_lang_selector", False):
+            return ""
+        
+        available_langs = header_data.get("available_langs", "").strip()
+        if not available_langs:
+            return ""
+        
+        current_lang = self.site_data.get("head", {}).get("lang", "es")
+        lang_codes = [lang.strip() for lang in available_langs.split(",") if lang.strip()]
+        
+        if len(lang_codes) <= 1:
+            return ""
+        
+        lang_names = {
+            "es": "Español",
+            "en": "English", 
+            "fr": "Français",
+            "de": "Deutsch",
+            "pt": "Português",
+            "it": "Italiano",
+            "ca": "Català",
+            "eu": "Euskera"
+        }
+        
+        options = []
+        for code in lang_codes:
+            name = lang_names.get(code, code.upper())
+            selected = ' selected' if code == current_lang else ''
+            options.append(f'<option value="{code}"{selected}>{name}</option>')
+        
+        return f'''<div class="header-lang-selector">
+            <select onchange="window.location.href='?lang='+this.value">
+                {"".join(options)}
+            </select>
+        </div>'''
+
+    def header_cta_button_html(self):
+        """Genera HTML para botón CTA en el header"""
+        header_data = self.site_data["sections"].get("header", {})
+        
+        cta_text = header_data.get("cta_text", "").strip()
+        cta_link = header_data.get("cta_link", "").strip()
+        
+        if not cta_text or not cta_link:
+            return ""
+        
+        cta_style = header_data.get("cta_style", "primary")
+        css_class = {
+            "primary": "btn btn--primary",
+            "secondary": "btn btn--secondary", 
+            "outline": "btn btn--outline"
+        }.get(cta_style, "btn btn--primary")
+        
+        return f'<div class="header-cta"><a class="{css_class}" href="{cta_link}">{cta_text}</a></div>'
+
+# ========================================================================
+# PARTE 7: 🎠 HERO - MÉTODOS HELPER
+# ========================================================================
 
     def split_eyebrows(self, text, rainbow=False):
         if not text:
@@ -179,6 +386,10 @@ class FlexibleHTMLGenerator:
         fb = hero_data.get("font_body", "var(--sans)")
         return f'--hero-title-font:{ft};--hero-body-font:{fb};'
 
+# ========================================================================
+# PARTE 8: 📑 GENERACIÓN DE SECCIONES
+# ========================================================================
+
     def generate_section(self, section_name):
         section_data = self.site_data["sections"].get(section_name, {})
         if not section_data.get("enabled", False):
@@ -189,7 +400,16 @@ class FlexibleHTMLGenerator:
             return tpl.format(
                 title=section_data.get("title",""),
                 navigation=self.generate_navigation(),
-                brand_logo_html=self.header_brand_logo_html()
+                brand_logo_html=self.header_brand_logo_html(),
+                header_custom_styles=self.header_custom_styles(),
+                brand_font_style=self.header_brand_font_style(),
+                entrance_animation=section_data.get("entrance_animation", "none"),
+                scroll_behavior=section_data.get("scroll_behavior", "normal"),
+                scroll_threshold=section_data.get("scroll_threshold", "100"),
+                contact_info_html=self.header_contact_info_html(),
+                social_links_html=self.header_social_links_html(),
+                lang_selector_html=self.header_lang_selector_html(),
+                cta_button_html=self.header_cta_button_html()
             )
 
         if section_name == "hero":
@@ -282,7 +502,10 @@ class FlexibleHTMLGenerator:
             return ""
         return template.format(**config["data"])
 
-    # ------------------------- HTML FULL -------------------------
+# ========================================================================
+# PARTE 9: 🌐 GENERACIÓN HTML FINAL
+# ========================================================================
+
     def generate_html(self):
         head_html = self.generate_head()
         lang = self.html_lang()

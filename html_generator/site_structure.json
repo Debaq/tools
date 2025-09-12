@@ -19,7 +19,28 @@
       "enabled": true,
       "title": "FIUF – Frontera · UACh",
       "logo_url": "https://www.uach.cl/uach/_imag/uach/logo-v2.png",
-      "logo_link": "https://www.uach.cl/"
+      "logo_link": "https://www.uach.cl/",
+      "bg_color": "#00aa00",
+      "opacity": "1.0",
+      "height": "auto",
+      "font_family": "'Helvetica Neue', sans-serif",
+      "cta_text": "",
+      "cta_link": "",
+      "cta_style": "outline",
+      "phone": "",
+      "email": "",
+      "social_facebook": "",
+      "social_twitter": "",
+      "social_instagram": "",
+      "social_linkedin": "",
+      "social_youtube": "",
+      "show_lang_selector": false,
+      "available_langs": "",
+      "entrance_animation": "slideInRight",
+      "animation_duration": "0.5s",
+      "scroll_behavior": "shrink",
+      "scroll_threshold": "111",
+      "sticky": true
     },
     "hero": {
       "enabled": true,
@@ -28,9 +49,19 @@
       "font_body": "var(--sans)",
       "slides": [
         {
-          "eyebrow": "Frontera, Innovación, Sostenibilidad",
+          "eyebrow": "Nuevo, nuevo",
           "title": "",
           "text": "",
+          "bg_type": "gradient",
+          "bg_image_url": "",
+          "bg_gradient_from": "#004527",
+          "bg_gradient_to": "#00693e",
+          "buttons": []
+        },
+        {
+          "eyebrow": "Nuevo",
+          "title": "aca",
+          "text": "Texto de la lámina",
           "bg_type": "gradient",
           "bg_image_url": "",
           "bg_gradient_from": "#004527",
@@ -59,6 +90,11 @@
           "pill": "Resultados",
           "title": "Impacto esperado",
           "text": "Capital humano avanzado y transferencia tecnológica."
+        },
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
         }
       ]
     },
@@ -98,11 +134,19 @@
         {
           "title": "Etapa 2 · Implementación (2026–2035)",
           "text": "Proyectos estratégicos y fortalecimiento de capacidades."
+        },
+        {
+          "title": "Nueva Etapa",
+          "text": "Descripción de la etapa"
+        },
+        {
+          "title": "Nueva Etapa",
+          "text": "Descripción de la etapa"
         }
       ]
     },
     "participa": {
-      "enabled": true,
+      "enabled": false,
       "eyebrow": "Convocatorias",
       "title": "Participa en FIUF – UACh",
       "description": "Integra la comunidad FIUF según tu perfil.",
@@ -113,14 +157,49 @@
       "eyebrow": "Actualidad",
       "title": "Noticias y eventos",
       "description": "Actividades recientes vinculadas a FIUF – UACh.",
-      "news": []
+      "news": [
+        {
+          "icon": "📰",
+          "title": "Nueva Noticia",
+          "meta": "Fecha",
+          "text": "Contenido"
+        },
+        {
+          "icon": "📰",
+          "title": "Nueva Noticia",
+          "meta": "Fecha",
+          "text": "Contenido"
+        },
+        {
+          "icon": "📰",
+          "title": "Nueva Noticia",
+          "meta": "Fecha",
+          "text": "Contenido"
+        }
+      ]
     },
     "recursos": {
       "enabled": true,
       "eyebrow": "Documentos",
       "title": "Recursos y descargas",
       "description": "Documentos y presentaciones clave del proyecto.",
-      "resources": []
+      "resources": [
+        {
+          "icon": "📄",
+          "title": "Nuevo Recurso",
+          "text": "Descripción"
+        },
+        {
+          "icon": "📄",
+          "title": "Nuevo Recurso",
+          "text": "Descripción"
+        },
+        {
+          "icon": "📄",
+          "title": "Nuevo Recurso",
+          "text": "Descripción"
+        }
+      ]
     },
     "contacto": {
       "enabled": true,
