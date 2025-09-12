@@ -1,7 +1,16 @@
 {
+  "server": {
+    "url": "http://tmeduca.org/tecmedhub/",
+    "timeout": 10
+  },
+  "scan": {
+    "interval_minutes": 0.5,
+    "network": "auto",
+    "timeout": 30
+  },
   "devices": {
     "fc:ee:28:03:34:e2": "K1-01",
-    "fc:ee:28:04:19:79": "K1-02", 
+    "fc:ee:28:04:19:79": "K1-02",
     "fc:ee:28:03:43:6a": "K1-03",
     "14:ab:c5:bb:b1:47": "server"
   }
