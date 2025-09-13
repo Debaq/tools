@@ -1030,140 +1030,8 @@ class HTMLEditor(QMainWindow):
 
         self.tabs.addTab(hero_tab, "Hero")
 
-
-    # Que Es tab - REORGANIZADO CON TABS COMO HERO
-        que_es_tab = QWidget()
-        qe_layout = QVBoxLayout(que_es_tab)
-        
-        # Activar que_es
-        qe_enable = QCheckBox("Activar ¿Qué es?")
-        qe_enable.setChecked(sections['que_es'].get('enabled', True))
-        qe_enable.toggled.connect(lambda c: self.toggle_section('que_es', c))
-        qe_layout.addWidget(qe_enable)
-
-        # Crear tabs para que_es
-        que_es_tabs = QTabWidget()
-        qe_layout.addWidget(que_es_tabs)
-
-        # === TAB 1: BÁSICO ===
-        basic_tab = QWidget()
-        basic_layout = QVBoxLayout(basic_tab)
-        
-        # Formulario compacto arriba
-        basic_form = QFormLayout()
-        
-        self.que_es_eyebrow = QLineEdit(sections['que_es'].get('eyebrow', ''))
-        self.que_es_eyebrow.textChanged.connect(self.on_que_es_basic_changed)
-        basic_form.addRow("Eyebrow:", self.que_es_eyebrow)
-        
-        self.que_es_title = QLineEdit(sections['que_es'].get('title', ''))
-        self.que_es_title.textChanged.connect(self.on_que_es_basic_changed)
-        basic_form.addRow("Título:", self.que_es_title)
-        
-        self.que_es_description = QTextEdit(sections['que_es'].get('description', ''))
-        self.que_es_description.setMaximumHeight(80)
-        self.que_es_description.textChanged.connect(self.on_que_es_basic_changed)
-        basic_form.addRow("Descripción:", self.que_es_description)
-        
-        # Fuentes de sección
-        self.que_es_section_font_title = self.create_font_combobox()
-        self.set_font_combo_value(self.que_es_section_font_title, sections['que_es'].get('font_title', ''))
-        self.que_es_section_font_title.currentIndexChanged.connect(self.on_que_es_basic_changed)
-        basic_form.addRow("Fuente título sección:", self.que_es_section_font_title)
-        
-        self.que_es_section_font_desc = self.create_font_combobox()
-        self.set_font_combo_value(self.que_es_section_font_desc, sections['que_es'].get('font_description', ''))
-        self.que_es_section_font_desc.currentIndexChanged.connect(self.on_que_es_basic_changed)
-        basic_form.addRow("Fuente descripción:", self.que_es_section_font_desc)
-        
-        basic_layout.addLayout(basic_form)
-        basic_layout.addStretch()  # Empujar todo hacia arriba
-        
-        que_es_tabs.addTab(basic_tab, "Básico")
-
-        # === TAB 2: CARDS ===
-        cards_tab = QWidget()
-        cards_layout = QVBoxLayout(cards_tab)
-        
-        # Lista de cards
-        cards_group = QGroupBox("Gestión de Cards")
-        cg_layout = QVBoxLayout(cards_group)
-
-        self.que_es_cards_list = QListWidget()
-        self.que_es_cards_list.currentRowChanged.connect(self.on_que_es_card_selected)
-        cg_layout.addWidget(self.que_es_cards_list)
-
-        # Botones de gestión
-        c_btns = QHBoxLayout()
-        c_add = QPushButton("➕ Agregar")
-        c_del = QPushButton("🗑️ Eliminar")
-        c_duplicate = QPushButton("📋 Duplicar")
-        c_up = QPushButton("⬆️ Subir")
-        c_down = QPushButton("⬇️ Bajar")
-        
-        c_add.clicked.connect(self.add_que_es_card)
-        c_del.clicked.connect(self.remove_que_es_card)
-        c_duplicate.clicked.connect(self.duplicate_que_es_card)
-        c_up.clicked.connect(self.move_que_es_card_up)
-        c_down.clicked.connect(self.move_que_es_card_down)
-        
-        c_btns.addWidget(c_add)
-        c_btns.addWidget(c_del)
-        c_btns.addWidget(c_duplicate)
-        c_btns.addWidget(c_up)
-        c_btns.addWidget(c_down)
-        cg_layout.addLayout(c_btns)
-        
-        # Editor de card seleccionado
-        card_editor = QGroupBox("Editor de Card")
-        card_form = QFormLayout(card_editor)
-        
-        self.que_es_card_pill = QLineEdit()
-        self.que_es_card_pill.setPlaceholderText("ej: Propósito, Alcance")
-        self.que_es_card_pill.textChanged.connect(self.on_que_es_card_changed)
-        card_form.addRow("Pill (eyebrow):", self.que_es_card_pill)
-        
-        self.que_es_card_title = QLineEdit()
-        self.que_es_card_title.setPlaceholderText("Título del card")
-        self.que_es_card_title.textChanged.connect(self.on_que_es_card_changed)
-        card_form.addRow("Título:", self.que_es_card_title)
-        
-        self.que_es_card_text = QTextEdit()
-        self.que_es_card_text.setMaximumHeight(90)
-        self.que_es_card_text.setPlaceholderText("Contenido del card...")
-        self.que_es_card_text.textChanged.connect(self.on_que_es_card_changed)
-        card_form.addRow("Texto:", self.que_es_card_text)
-        
-        # Color de fondo del card
-        bg_color_layout = QHBoxLayout()
-        self.que_es_card_bg_btn = ColorButton("#ffffff", "Color de fondo del card")
-        self.que_es_card_bg_btn.clicked.connect(self.choose_que_es_card_bg_color)
-        
-        self.que_es_card_bg_text = QLineEdit("#ffffff")
-        self.que_es_card_bg_text.setPlaceholderText("#RRGGBB o transparent")
-        self.que_es_card_bg_text.textChanged.connect(self.on_que_es_card_bg_text_changed)
-        
-        bg_color_layout.addWidget(self.que_es_card_bg_btn)
-        bg_color_layout.addWidget(self.que_es_card_bg_text)
-        card_form.addRow("Color fondo:", bg_color_layout)
-        
-        # Fuente del título
-        self.que_es_card_font_title = self.create_font_combobox()
-        self.que_es_card_font_title.currentIndexChanged.connect(self.on_que_es_card_changed)
-        card_form.addRow("Fuente título:", self.que_es_card_font_title)
-        
-        # Fuente del texto
-        self.que_es_card_font_text = self.create_font_combobox()
-        self.que_es_card_font_text.currentIndexChanged.connect(self.on_que_es_card_changed)
-        card_form.addRow("Fuente texto:", self.que_es_card_font_text)
-        
-        cards_layout.addWidget(card_editor)
-        que_es_tabs.addTab(cards_tab, "Cards")
-
-        self.tabs.addTab(que_es_tab, "¿Qué es?")
-
         # Otras secciones
-        for sec in ["ejes", "etapas", "participa", "noticias", "recursos", "contacto"]:
+        for sec in ["que_es", "ejes", "etapas", "participa", "noticias", "recursos", "contacto"]:
             data = sections.get(sec, {})
             tab = QWidget()
             tab_layout = QVBoxLayout(tab)
@@ -1181,128 +1049,9 @@ class HTMLEditor(QMainWindow):
         # Populate slides list
         self.refresh_slides_list()
 
-        # Inicializar listas después de crear todas las tabs
-        if hasattr(self, 'que_es_cards_list'):
-            self.refresh_que_es_cards_list()
 # ========================================================================
 # PARTE 6: 🔧 MANEJADORES DE EVENTOS
 # ========================================================================
-
-
-    def on_que_es_basic_changed(self):
-        """Handler para cambios básicos de que_es"""
-        qe = self.site_data['sections']['que_es']
-        qe['eyebrow'] = self.que_es_eyebrow.text()
-        qe['title'] = self.que_es_title.text()
-        qe['description'] = self.que_es_description.toPlainText()
-        
-        # Fuentes de sección
-        title_font = self.que_es_section_font_title.currentData()
-        desc_font = self.que_es_section_font_desc.currentData()
-        qe['font_title'] = title_font if title_font else ''
-        qe['font_description'] = desc_font if desc_font else ''
-        
-        self.schedule_update('que_es')
-
-    def on_que_es_card_selected(self, idx):
-        """Handler cuando se selecciona un card"""
-        self.load_que_es_card_fields(idx)
-
-    def on_que_es_card_changed(self):
-        """Handler para cambios en el card actual"""
-        try:
-            if not hasattr(self, 'que_es_cards_list') or not self.que_es_cards_list:
-                return
-            idx = self.que_es_cards_list.currentRow()
-        except RuntimeError:
-            return
-            
-        if idx < 0:
-            return
-        
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if idx >= len(cards):
-            return
-        
-        card = cards[idx]
-        card['pill'] = self.que_es_card_pill.text()
-        card['title'] = self.que_es_card_title.text()
-        card['text'] = self.que_es_card_text.toPlainText()
-        
-        # Fuentes
-        title_font = self.que_es_card_font_title.currentData()
-        text_font = self.que_es_card_font_text.currentData()
-        card['font_title'] = title_font if title_font else ''
-        card['font_text'] = text_font if text_font else ''
-        
-        # Color de fondo
-        card['bg_color'] = self.que_es_card_bg_text.text()
-        
-        # Actualizar lista
-        try:
-            self.que_es_cards_list.blockSignals(True)
-            self.que_es_cards_list.item(idx).setText(card.get('title', 'Card sin título'))
-            self.que_es_cards_list.blockSignals(False)
-        except (RuntimeError, AttributeError):
-            pass
-        
-        self.schedule_update('que_es')
-
-    def choose_que_es_card_bg_color(self):
-        """Selector de color para fondo de card"""
-        idx = self.que_es_cards_list.currentRow()
-        if idx < 0:
-            return
-        
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if idx >= len(cards):
-            return
-        
-        current_color = cards[idx].get('bg_color', '#ffffff')
-        initial = QColor(current_color if current_color.startswith("#") else "#ffffff")
-        color = QColorDialog.getColor(initial, self, "Color de fondo del card")
-        
-        if color.isValid():
-            color_hex = color.name()
-            cards[idx]['bg_color'] = color_hex
-            
-            # Actualizar UI
-            self.que_es_card_bg_btn.setStyleSheet(
-                f"background-color: {color_hex}; border: 1px solid #ccc; border-radius: 4px;"
-            )
-            self.que_es_card_bg_btn.color_hex = color_hex
-            self.que_es_card_bg_text.setText(color_hex)
-            
-            self.schedule_update('que_es')
-
-    def on_que_es_card_bg_text_changed(self):
-        """Handler para cambio manual del color de fondo"""
-        color_text = self.que_es_card_bg_text.text().strip()
-        if not color_text:
-            return
-        
-        idx = self.que_es_cards_list.currentRow()
-        if idx < 0:
-            return
-        
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if idx >= len(cards):
-            return
-        
-        cards[idx]['bg_color'] = color_text
-        
-        # Actualizar botón si es color hex válido
-        if color_text.startswith('#') and len(color_text) == 7:
-            try:
-                int(color_text[1:], 16)
-                self.que_es_card_bg_btn.setStyleSheet(
-                    f"background-color: {color_text}; border: 1px solid #ccc; border-radius: 4px;"
-                )
-                self.que_es_card_bg_btn.color_hex = color_text
-            except ValueError:
-                pass
-        
-        self.schedule_update('que_es')
 
 
     def load_css_variables(self):
@@ -1866,7 +1615,7 @@ class HTMLEditor(QMainWindow):
             QTimer.singleShot(100, self.restore_scroll_position)
 
 # ========================================================================
-# PARTE 7: 🎠 GESTIÓN DE ELEMENTOS
+# PARTE 7: 🎠 GESTIÓN DE SLIDES
 # ========================================================================
 
     def refresh_slides_list(self):
@@ -2072,151 +1821,8 @@ class HTMLEditor(QMainWindow):
             self.slides_list.setCurrentRow(idx + 1)
             self.schedule_update('hero')
 
-    def refresh_que_es_cards_list(self):
-        """Actualizar lista de cards de que_es"""
-        # Verificar que el widget existe y no ha sido eliminado
-        try:
-            if not hasattr(self, 'que_es_cards_list') or not self.que_es_cards_list:
-                return
-            
-            # Verificar que el widget C++ subyacente aún existe
-            self.que_es_cards_list.isVisible()  # Esto lanzará RuntimeError si fue eliminado
-            
-            self.que_es_cards_list.blockSignals(True)
-            self.que_es_cards_list.clear()
-            
-            cards = self.site_data['sections']['que_es'].get('cards', [])
-            for card in cards:
-                self.que_es_cards_list.addItem(card.get('title', 'Card'))
-            
-            self.que_es_cards_list.blockSignals(False)
-            
-            if cards:
-                self.que_es_cards_list.setCurrentRow(0)
-                self.load_que_es_card_fields(0)
-                
-        except RuntimeError:
-            # El widget fue eliminado, no hacer nada
-            return
-        except Exception as e:
-            print(f"Error en refresh_que_es_cards_list: {e}")
-            return
 
-    def load_que_es_card_fields(self, idx):
-        """Cargar campos del card seleccionado"""
-        # Bloquear señales para evitar triggers durante la carga
-        widgets_to_block = [
-            self.que_es_card_pill, self.que_es_card_title, self.que_es_card_text,
-            self.que_es_card_bg_text, self.que_es_card_font_title, self.que_es_card_font_text
-        ]
-        
-        for widget in widgets_to_block:
-            if widget:
-                widget.blockSignals(True)
-        
-        cards = self.site_data['sections']['que_es'].get('cards', [])
-        if idx is None or idx < 0 or idx >= len(cards):
-            # Limpiar campos si no hay card válido
-            self.que_es_card_pill.setText("")
-            self.que_es_card_title.setText("")
-            self.que_es_card_text.setPlainText("")
-            self.que_es_card_bg_text.setText("#ffffff")
-            self.que_es_card_bg_btn.setStyleSheet(
-                "background-color: #ffffff; border: 1px solid #ccc; border-radius: 4px;"
-            )
-            self.set_font_combo_value(self.que_es_card_font_title, '')
-            self.set_font_combo_value(self.que_es_card_font_text, '')
-        else:
-            # Cargar datos del card
-            card = cards[idx]
-            self.que_es_card_pill.setText(card.get('pill', ""))
-            self.que_es_card_title.setText(card.get('title', ""))
-            self.que_es_card_text.setPlainText(card.get('text', ""))
-            
-            # Color de fondo
-            bg_color = card.get('bg_color', '#ffffff')
-            self.que_es_card_bg_text.setText(bg_color)
-            self.que_es_card_bg_btn.setStyleSheet(
-                f"background-color: {bg_color}; border: 1px solid #ccc; border-radius: 4px;"
-            )
-            self.que_es_card_bg_btn.color_hex = bg_color
-            
-            # Fuentes
-            self.set_font_combo_value(self.que_es_card_font_title, card.get('font_title', ''))
-            self.set_font_combo_value(self.que_es_card_font_text, card.get('font_text', ''))
-        
-        # Reactivar señales
-        for widget in widgets_to_block:
-            if widget:
-                widget.blockSignals(False)
-
-    def add_que_es_card(self):
-        """Agregar nuevo card con valores por defecto"""
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        new_card = {
-            "pill": "Nueva",
-            "title": f"Nuevo Card {len(cards) + 1}",
-            "text": "Contenido del card",
-            "bg_color": "#ffffff",
-            "font_title": "",
-            "font_text": ""
-        }
-        
-        cards.append(new_card)
-        self.refresh_que_es_cards_list()
-        
-        # Seleccionar el nuevo card
-        self.que_es_cards_list.setCurrentRow(len(cards) - 1)
-        self.schedule_update('que_es')
-
-    def remove_que_es_card(self):
-        """Eliminar card seleccionado"""
-        idx = self.que_es_cards_list.currentRow()
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if 0 <= idx < len(cards):
-            del cards[idx]
-            self.refresh_que_es_cards_list()
-            self.schedule_update('que_es')
-
-    def duplicate_que_es_card(self):
-        """Duplicar el card seleccionado"""
-        idx = self.que_es_cards_list.currentRow()
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if 0 <= idx < len(cards):
-            # Crear copia del card
-            original = cards[idx]
-            duplicate = original.copy()
-            duplicate['title'] = duplicate.get('title', 'Card') + ' (Copia)'
-            
-            # Insertar después del original
-            cards.insert(idx + 1, duplicate)
-            self.refresh_que_es_cards_list()
-            
-            # Seleccionar el nuevo card
-            self.que_es_cards_list.setCurrentRow(idx + 1)
-            self.schedule_update('que_es')
-
-    def move_que_es_card_up(self):
-        """Mover card hacia arriba"""
-        idx = self.que_es_cards_list.currentRow()
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if idx > 0 and idx < len(cards):
-            # Intercambiar posiciones
-            cards[idx], cards[idx-1] = cards[idx-1], cards[idx]
-            self.refresh_que_es_cards_list()
-            self.que_es_cards_list.setCurrentRow(idx-1)
-            self.schedule_update('que_es')
-
-    def move_que_es_card_down(self):
-        """Mover card hacia abajo"""
-        idx = self.que_es_cards_list.currentRow()
-        cards = self.site_data['sections']['que_es'].setdefault('cards', [])
-        if idx >= 0 and idx < len(cards) - 1:
-            # Intercambiar posiciones
-            cards[idx], cards[idx+1] = cards[idx+1], cards[idx]
-            self.refresh_que_es_cards_list()
-            self.que_es_cards_list.setCurrentRow(idx+1)
-            self.schedule_update('que_es')
+    
 
 # ========================================================================
 # PARTE 8: 🧰 MÉTODOS HELPER
@@ -2485,18 +2091,11 @@ class HTMLEditor(QMainWindow):
             color_btn.color_hex = current_color
         
         # Recrear tabs para incluir los nuevos campos del header
-        #self.tabs.clear()
-        # self.setup_section_tabs()
+        self.tabs.clear()
+        self.setup_section_tabs()
         
         # Actualizar campos específicos del header expandido
         self.refresh_ui_header_section()
-
-        # Actualizar lista de cards de que_es si existe
-        if hasattr(self, 'que_es_cards_list'):
-            try:
-                self.refresh_que_es_cards_list()
-            except RuntimeError:
-                pass
 
     def refresh_ui_header_section(self):
         """Actualizar específicamente la sección header con controles mejorados"""

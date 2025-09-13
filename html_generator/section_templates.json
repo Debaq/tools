@@ -13,11 +13,11 @@
       "template": "<section class=\"hero\"><div class=\"carousel\"><div class=\"slides\">{slides_html}</div><button class=\"nav-btn nav-prev\" onclick=\"moveSlide(-1)\">‹</button><button class=\"nav-btn nav-next\" onclick=\"moveSlide(1)\">›</button><div class=\"dots\">{dots_html}</div></div></section>",
       "fields": ["slides_html", "dots_html"]
     },
-    "section_with_cards": {
-      "template": "<section id=\"{section_id}\" class=\"{section_class}\"><div class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"grid grid-3\">{cards}</div></div></section>",
-      "fields": ["eyebrow", "title", "description"],
-      "dynamic": ["cards"]
-    },
+"section_with_cards": {
+  "template": "<section id=\"{section_id}\" class=\"{section_class}\"><div class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"grid grid-3\">{cards}</div></div></section>",
+  "fields": ["eyebrow", "title", "description", "section_title_style", "section_desc_style"],
+  "dynamic": ["cards"]
+},
     "section_with_timeline": {
       "template": "<section id=\"{section_id}\" class=\"container\"><div class=\"section-head\"><div class=\"section-eyebrow\">{eyebrow}</div><h2 class=\"section-title\">{title}</h2><p class=\"section-desc\">{description}</p></div><div class=\"timeline\">{timeline_items}</div></section>",
       "fields": ["eyebrow", "title", "description"],
@@ -33,9 +33,7 @@
     }
   },
   "item_templates": {
-    "card_basic": "<article class=\"card\"><span class=\"pill\">{pill}</span><h3>{title}</h3><p>{text}</p></article>",
-    "card_with_icon": "<article class=\"card\"><h3>{icon} {title}</h3><p>{text}</p></article>",
-    "timeline_item": "<div class=\"tl-item\"><h4>{title}</h4><p>{text}</p></div>",
+    "card_basic": "<article class=\"card\" style=\"{card_style}\"><span class=\"pill\">{pill}</span><h3 style=\"font-family: var(--card-title-font, inherit)\">{title}</h3><p style=\"font-family: var(--card-text-font, inherit)\">{text}</p></article>",
     "news_card": "<article class=\"card news-card\"><div class=\"news-img\">{icon}</div><div class=\"card-body\"><h3>{title}</h3><p class=\"meta\">{meta}</p><p>{text}</p><a href=\"#\">Leer más →</a></div></article>",
     "resource_card": "<article class=\"card\"><h3>{icon} {title}</h3><p>{text}</p><div class=\"actions\"><a class=\"btn btn--primary\" href=\"#\">Descargar</a></div></article>",
     "hero_slide": "<div class=\"slide\"><div class=\"hero\" style=\"{hero_bg_style}\"><div class=\"hero__bg\"></div><div class=\"container\" style=\"{hero_fonts}\">{eyebrow_html}<h1 class=\"hero__title\">{title}</h1><p class=\"hero__text\">{text}</p><div class=\"hero__cta\">{buttons_html}</div></div></div></div>"

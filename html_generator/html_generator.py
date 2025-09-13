@@ -183,9 +183,21 @@ class FlexibleHTMLGenerator:
             item_copy = item.copy()
             if "address" in item_copy:
                 item_copy["address"] = item_copy["address"].replace("\n", "<br>")
+            
+            # Generar estilos personalizados para cards
+            card_styles = []
+            if item_copy.get('bg_color'):
+                card_styles.append(f"background-color: {item_copy['bg_color']}")
+            if item_copy.get('font_title'):
+                card_styles.append(f"--card-title-font: {item_copy['font_title']}")
+            if item_copy.get('font_text'):
+                card_styles.append(f"--card-text-font: {item_copy['font_text']}")
+            
+            item_copy['card_style'] = "; ".join(card_styles) if card_styles else ""
+            
             defaults = {
-                "card_basic": {"pill": "Info", "title": "Sin título", "text": "Sin contenido"},
-                "card_with_icon": {"icon": "📌", "title": "Sin título", "text": "Sin contenido"},
+                "card_basic": {"pill": "Info", "title": "Sin título", "text": "Sin contenido", "card_style": ""},
+                "card_with_icon": {"icon": "📌", "title": "Sin título", "text": "Sin contenido", "card_style": ""},
                 "timeline_item": {"title": "Sin título", "text": "Sin contenido"},
                 "news_card": {"icon": "📰", "title": "Sin título", "meta": "", "text": "Sin contenido"},
                 "resource_card": {"icon": "📄", "title": "Sin título", "text": "Sin contenido"},
@@ -451,12 +463,26 @@ class FlexibleHTMLGenerator:
                 tpl = self.templates["section_templates"]["hero_carousel"]["template"]
                 return tpl.format(slides_html=slides_html, dots_html=dots_html)
 
+        if section_name == "que_es":
+            # Preparar datos con defaults completos
+            data = {
+                "eyebrow": section_data.get('eyebrow', ''),
+                "title": section_data.get('title', ''),
+                "description": section_data.get('description', ''),
+                "section_id": "que-es",
+                "section_class": "container",
+                "cards": self.generate_items(section_data.get("cards", []), "card_basic"),
+                "section_title_style": f"font-family: {section_data.get('font_title')}" if section_data.get('font_title') else "",
+                "section_desc_style": f"font-family: {section_data.get('font_description')}" if section_data.get('font_description') else ""
+            }
+            
+            template_obj = self.templates["section_templates"].get("section_with_cards", {})
+            template = template_obj.get("template", "") if isinstance(template_obj, dict) else template_obj
+            if not template:
+                return ""
+            return template.format(**data)
+
         section_mapping = {
-            "que_es": {
-                "template": "section_with_cards",
-                "data": {**section_data, "section_id": "que-es", "section_class": "container",
-                        "cards": self.generate_items(section_data.get("cards", []), "card_basic")}
-            },
             "ejes": {
                 "template": "section_with_cards",
                 "data": {**section_data, "section_id": "ejes", "section_class": "band",

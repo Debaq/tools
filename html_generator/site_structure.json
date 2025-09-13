@@ -44,8 +44,8 @@
     },
     "hero": {
       "enabled": true,
-      "rainbow_eyebrow": false,
-      "font_title": "var(--serif)",
+      "rainbow_eyebrow": true,
+      "font_title": "'Segoe UI', sans-serif",
       "font_body": "var(--sans)",
       "slides": [
         {
@@ -113,9 +113,22 @@
         {
           "pill": "Nueva",
           "title": "Nuevo Título",
-          "text": "Nuevo texto"
+          "text": "Nuevo texto",
+          "font_title": "Arial, sans-serif",
+          "font_text": "var(--serif)",
+          "bg_color": "#ffffff"
+        },
+        {
+          "pill": "Nueva",
+          "title": "Card importante",
+          "text": "Contenido del dasas",
+          "bg_color": "#ff0000",
+          "font_title": "var(--serif)",
+          "font_text": "var(--serif)"
         }
-      ]
+      ],
+      "font_title": "'Segoe UI', sans-serif",
+      "font_description": "system-ui, sans-serif"
     },
     "ejes": {
       "enabled": true,
@@ -137,6 +150,11 @@
           "icon": "🏔️",
           "title": "Singularidades de Chile",
           "text": "Patagonia, Atacama y ecosistemas únicos."
+        },
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
         }
       ]
     },
@@ -165,11 +183,32 @@
       ]
     },
     "participa": {
-      "enabled": false,
+      "enabled": true,
       "eyebrow": "Convocatorias",
       "title": "Participa en FIUF – UACh",
       "description": "Integra la comunidad FIUF según tu perfil.",
-      "cards": []
+      "cards": [
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
+        },
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
+        },
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
+        },
+        {
+          "pill": "Nueva",
+          "title": "Nuevo Título",
+          "text": "Nuevo texto"
+        }
+      ]
     },
     "noticias": {
       "enabled": true,
